@@ -1,2 +1,4 @@
-import { DocumentForm } from '../components/DocumentForm';
-export default function VerifyIdScreen(){return <DocumentForm identity/>;}
+import { DocumentForm } from "../components/DocumentForm";
+export default function VerifyIdScreen() {
+  return <DocumentForm identity />;
+}

@@ -1,26 +1,22 @@
-import { translate as i18nT } from '@datxe/shared';
-import { useLanguage } from "../useLanguage";
-import { useThemeColors } from "../theme/ThemeProvider";
-import { useThemedStyles } from "../theme/ThemeProvider";
-import { MaterialIcons } from '@expo/vector-icons';
-import { useMemo,useState } from 'react';
+import { translate as i18nT } from "@datxe/shared";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useMemo, useState } from "react";
+import { FlatList, Keyboard, Modal, StyleSheet, View } from "react-native";
 import {
-FlatList,
-Keyboard,
-Modal,
-Pressable,
-StyleSheet,
-Text,
-TextInput,
-View,
-} from 'react-native';
+  MotionPressable as Pressable,
+  Typography as Text,
+  ThemedTextInput as TextInput,
+} from "../components";
+import type { ThemeColors } from "../theme/ThemeProvider";
+import { useThemeColors, useThemedStyles } from "../theme/ThemeProvider";
+import { useLanguage } from "../useLanguage";
 
 import {
-formatNationalPhoneNumber,
-PHONE_COUNTRIES,
-type PhoneCountry,
-} from '@datxe/shared';
-import { borderRadius,colors,fontSize,spacing,typography } from '../theme/colors';
+  formatNationalPhoneNumber,
+  PHONE_COUNTRIES,
+  type PhoneCountry,
+} from "@datxe/shared";
+import { borderRadius, fontSize, spacing, typography } from "../theme/colors";
 
 type Props = {
   value: string;
@@ -28,6 +24,8 @@ type Props = {
   onChangeText: (value: string) => void;
   onSelectCountry: (country: PhoneCountry) => void;
   label?: string;
+  /** Gợi ý trong ô nhập; mặc định lấy ví dụ số của quốc gia đang chọn. */
+  placeholder?: string;
   disabled?: boolean;
   invalid?: boolean;
   accessibilityLabel?: string;
@@ -39,33 +37,35 @@ export function PhoneNumberInput({
   onChangeText,
   onSelectCountry,
   label,
+  placeholder,
   disabled = false,
   invalid = false,
   accessibilityLabel = i18nT("Số điện thoại"),
 }: Props) {
- const language = useLanguage();
+  const language = useLanguage();
 
- const colors=useThemeColors();
+  const colors = useThemeColors();
 
- const styles=useThemedStyles(base_styles);
+  const styles = useThemedStyles(base_styles);
 
   const [pickerVisible, setPickerVisible] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
   const filteredCountries = useMemo(() => {
     const query = normalizeSearch(search);
     if (!query) return PHONE_COUNTRIES;
-    return PHONE_COUNTRIES.filter((item) =>
-      normalizeSearch(i18nT(item.name)).includes(query)
-      || item.iso2.toLowerCase().includes(query)
-      || item.dialCode.includes(query),
+    return PHONE_COUNTRIES.filter(
+      (item) =>
+        normalizeSearch(i18nT(item.name)).includes(query) ||
+        item.iso2.toLowerCase().includes(query) ||
+        item.dialCode.includes(query),
     );
   }, [search, language]);
 
   const closePicker = () => {
     Keyboard.dismiss();
     setPickerVisible(false);
-    setSearch('');
+    setSearch("");
   };
 
   const selectCountry = (nextCountry: PhoneCountry) => {
@@ -78,7 +78,12 @@ export function PhoneNumberInput({
       {label ? <Text style={styles.label}>{i18nT(label)}</Text> : null}
       <View style={[styles.inputRow, invalid && styles.inputRowInvalid]}>
         <Pressable
-          accessibilityLabel={i18nT(i18nT("Chọn quốc gia, hiện tại {0} {1}", {"0": country.name, "1": country.dialCode}))}
+          accessibilityLabel={i18nT(
+            i18nT("Chọn quốc gia, hiện tại {0} {1}", {
+              "0": country.name,
+              "1": country.dialCode,
+            }),
+          )}
           accessibilityRole="button"
           accessibilityState={{ disabled }}
           disabled={disabled}
@@ -90,7 +95,11 @@ export function PhoneNumberInput({
         >
           <Text style={styles.flag}>{i18nT(country.flag)}</Text>
           <Text style={styles.dialCode}>{i18nT(country.dialCode)}</Text>
-          <MaterialIcons color={colors.onSurfaceVariant} name="arrow-drop-down" size={fontSize.iconXl} />
+          <MaterialIcons
+            color={colors.onSurfaceVariant}
+            name="arrow-drop-down"
+            size={fontSize.iconXl}
+          />
         </Pressable>
         <View style={styles.divider} />
         <TextInput
@@ -99,8 +108,10 @@ export function PhoneNumberInput({
           editable={!disabled}
           keyboardType="phone-pad"
           maxLength={country.maxLength + country.groups.length}
-          onChangeText={(text) => onChangeText(text.replace(/\D/g, '').slice(0, country.maxLength))}
-          placeholder={i18nT(country.example)}
+          onChangeText={(text) =>
+            onChangeText(text.replace(/\D/g, "").slice(0, country.maxLength))
+          }
+          placeholder={i18nT(placeholder ?? country.example)}
           placeholderTextColor={colors.outline70}
           style={styles.phoneInput}
           value={formatNationalPhoneNumber(value, country)}
@@ -110,10 +121,14 @@ export function PhoneNumberInput({
             accessibilityLabel={i18nT("Xóa số đã nhập")}
             accessibilityRole="button"
             disabled={disabled}
-            onPress={() => onChangeText('')}
+            onPress={() => onChangeText("")}
             style={styles.clearButton}
           >
-            <MaterialIcons color={colors.onSurfaceVariant} name="close" size={fontSize.icon16} />
+            <MaterialIcons
+              color={colors.onSurfaceVariant}
+              name="close"
+              size={fontSize.icon16}
+            />
           </Pressable>
         ) : null}
       </View>
@@ -135,19 +150,29 @@ export function PhoneNumberInput({
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>{i18nT("Chọn quốc gia hoặc vùng lãnh thổ")}</Text>
+              <Text style={styles.sheetTitle}>
+                {i18nT("Chọn quốc gia hoặc vùng lãnh thổ")}
+              </Text>
               <Pressable
                 accessibilityLabel={i18nT("Đóng")}
                 accessibilityRole="button"
                 onPress={closePicker}
                 style={styles.closeButton}
               >
-                <MaterialIcons color={colors.onSurface} name="close" size={fontSize.iconXl} />
+                <MaterialIcons
+                  color={colors.onSurface}
+                  name="close"
+                  size={fontSize.iconXl}
+                />
               </Pressable>
             </View>
 
             <View style={styles.searchRow}>
-              <MaterialIcons color={colors.onSurfaceVariant} name="search" size={fontSize.iconXl} />
+              <MaterialIcons
+                color={colors.onSurfaceVariant}
+                name="search"
+                size={fontSize.iconXl}
+              />
               <TextInput
                 accessibilityLabel={i18nT("Tìm quốc gia hoặc mã gọi")}
                 autoCapitalize="none"
@@ -173,14 +198,24 @@ export function PhoneNumberInput({
                   style={styles.countryRow}
                 >
                   <Text style={styles.rowFlag}>{i18nT(item.flag)}</Text>
-                  <Text numberOfLines={1} style={styles.countryName}>{i18nT(item.name)}</Text>
+                  <Text numberOfLines={1} style={styles.countryName}>
+                    {i18nT(item.name)}
+                  </Text>
                   <Text style={styles.rowDialCode}>{i18nT(item.dialCode)}</Text>
                   {item.iso2 === country.iso2 ? (
-                    <MaterialIcons color={colors.primary} name="check" size={fontSize.iconLg} />
+                    <MaterialIcons
+                      color={colors.primary}
+                      name="check"
+                      size={fontSize.iconLg}
+                    />
                   ) : null}
                 </Pressable>
               )}
-              ListEmptyComponent={<Text style={styles.emptyText}>{i18nT("Không tìm thấy quốc gia phù hợp.")}</Text>}
+              ListEmptyComponent={
+                <Text style={styles.emptyText}>
+                  {i18nT("Không tìm thấy quốc gia phù hợp.")}
+                </Text>
+              }
             />
           </View>
         </View>
@@ -193,57 +228,142 @@ function normalizeSearch(value: string): string {
   return value
     .trim()
     .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd');
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d");
 }
 
-const base_styles = StyleSheet.create({
-  label: { ...typography.labelLg, color: colors.onSurface, marginBottom: spacing.gap1_5 },
-  inputRow: {
-    minHeight: spacing.inputHeight,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surfaceContainerLow,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing.spaceSm,
-  },
-  inputRowInvalid: { borderColor: colors.error, backgroundColor: colors.errorContainer30 },
-  countryButton: {
-    minWidth: 94,
-    minHeight: spacing.inputHeight - 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.spaceXs,
-    paddingHorizontal: spacing.spaceXs,
-  },
-  flag: { fontSize: fontSize.iconXl },
-  dialCode: { ...typography.labelLg, color: colors.onSurface },
-  divider: { width: spacing.phoneDividerWidth, height: spacing.phoneDividerHeight, backgroundColor: colors.outlineVariant, marginHorizontal: spacing.spaceXs },
-  phoneInput: { ...typography.bodyMd, color: colors.onSurface, flex: 1, minWidth: 0, paddingHorizontal: spacing.spaceXs, paddingVertical: 0 },
-  clearButton: { width: spacing.clearButton, height: spacing.clearButton, borderRadius: borderRadius.full, backgroundColor: colors.surfaceContainerHigh, alignItems: 'center', justifyContent: 'center' },
-  modalRoot: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.scrim60 },
-  sheet: {
-    maxHeight: '82%',
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: borderRadius.xxl,
-    borderTopRightRadius: borderRadius.xxl,
-    paddingHorizontal: spacing.margin,
-    paddingTop: spacing.spaceSm,
-    paddingBottom: spacing.spaceXl,
-  },
-  sheetHandle: { width: 40, height: 4, borderRadius: borderRadius.full, backgroundColor: colors.outlineVariant, alignSelf: 'center', marginBottom: spacing.spaceMd },
-  sheetHeader: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.spaceSm },
-  sheetTitle: { ...typography.headlineSm, color: colors.onSurface, flex: 1 },
-  closeButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginLeft: spacing.spaceSm },
-  searchRow: { minHeight: spacing.inputHeight, flexDirection: 'row', alignItems: 'center', gap: spacing.spaceSm, backgroundColor: colors.surfaceContainerLow, borderRadius: borderRadius.xl, paddingHorizontal: spacing.spaceMd, marginBottom: spacing.spaceSm },
-  searchInput: { ...typography.bodyMd, color: colors.onSurface, flex: 1, minWidth: 0, padding: 0 },
-  countryRow: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: spacing.spaceSm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.outlineVariant, paddingHorizontal: spacing.spaceXs },
-  rowFlag: { fontSize: fontSize.iconXl, width: 30 },
-  countryName: { ...typography.bodyMd, color: colors.onSurface, flex: 1 },
-  rowDialCode: { ...typography.labelMd, color: colors.onSurfaceVariant, minWidth: 46, textAlign: 'right' },
-  emptyText: { ...typography.bodyMd, color: colors.onSurfaceVariant, textAlign: 'center', paddingVertical: spacing.spaceXl },
-});
+const base_styles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    label: {
+      ...typography.labelLg,
+      fontSize: 13,
+      color: colors.onSurface,
+      marginBottom: spacing.gap1_5,
+    },
+    inputRow: {
+      minHeight: spacing.inputHeight,
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surfaceContainerLowest,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderRadius: borderRadius.xl,
+      paddingHorizontal: spacing.px2_5,
+    },
+    inputRowInvalid: {
+      borderColor: colors.error,
+      backgroundColor: colors.errorContainer30,
+    },
+    countryButton: {
+      minWidth: 94,
+      minHeight: spacing.inputHeight - 2,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.spaceXs,
+      paddingHorizontal: spacing.spaceXs,
+    },
+    flag: { fontSize: fontSize.iconXl },
+    dialCode: { ...typography.labelLg, color: colors.onSurface },
+    divider: {
+      width: spacing.phoneDividerWidth,
+      height: spacing.phoneDividerHeight,
+      backgroundColor: colors.outlineVariant,
+      marginHorizontal: spacing.spaceXs,
+    },
+    phoneInput: {
+      ...typography.bodyLg,
+      fontSize: 15,
+      color: colors.onSurface,
+      flex: 1,
+      minWidth: 0,
+      paddingHorizontal: spacing.spaceXs,
+      paddingVertical: 0,
+    },
+    clearButton: {
+      width: spacing.clearButton,
+      height: spacing.clearButton,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.surfaceContainerHigh,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    modalRoot: {
+      flex: 1,
+      justifyContent: "flex-end",
+      backgroundColor: colors.scrim60,
+    },
+    sheet: {
+      maxHeight: "82%",
+      backgroundColor: colors.surfaceContainerLowest,
+      borderTopLeftRadius: borderRadius.xxl,
+      borderTopRightRadius: borderRadius.xxl,
+      paddingHorizontal: spacing.margin,
+      paddingTop: spacing.spaceSm,
+      paddingBottom: spacing.spaceXl,
+    },
+    sheetHandle: {
+      width: 36,
+      height: 4,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.secondaryFixedDim,
+      alignSelf: "center",
+      marginBottom: spacing.spaceMd,
+    },
+    sheetHeader: {
+      minHeight: 44,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: spacing.spaceSm,
+    },
+    sheetTitle: { ...typography.headlineSm, color: colors.onSurface, flex: 1 },
+    closeButton: {
+      width: 40,
+      height: 40,
+      alignItems: "center",
+      justifyContent: "center",
+      marginLeft: spacing.spaceSm,
+    },
+    searchRow: {
+      minHeight: spacing.inputHeight,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.spaceSm,
+      backgroundColor: colors.surfaceContainerLow,
+      borderRadius: borderRadius.xl,
+      paddingHorizontal: spacing.spaceMd,
+      marginBottom: spacing.spaceSm,
+    },
+    searchInput: {
+      ...typography.bodyMd,
+      color: colors.onSurface,
+      flex: 1,
+      minWidth: 0,
+      padding: 0,
+    },
+    countryRow: {
+      minHeight: 54,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.spaceSm,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.outlineVariant,
+      paddingHorizontal: spacing.spaceXs,
+    },
+    rowFlag: { fontSize: fontSize.iconXl, width: 30 },
+    countryName: { ...typography.bodyMd, color: colors.onSurface, flex: 1 },
+    rowDialCode: {
+      ...typography.labelMd,
+      color: colors.onSurfaceVariant,
+      minWidth: 46,
+      textAlign: "right",
+    },
+    emptyText: {
+      ...typography.bodyMd,
+      color: colors.onSurfaceVariant,
+      textAlign: "center",
+      paddingVertical: spacing.spaceXl,
+    },
+  });

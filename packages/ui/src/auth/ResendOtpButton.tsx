@@ -1,33 +1,52 @@
-import { translate as i18nT } from '@datxe/shared';
+import { translate as i18nT } from "@datxe/shared";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet } from "react-native";
+import {
+  MotionPressable as Pressable,
+  Typography as Text,
+} from "../components";
+import type { ThemeColors } from "../theme/ThemeProvider";
+import { useThemeColors, useThemedStyles } from "../theme/ThemeProvider";
 import { useLanguage } from "../useLanguage";
-import { useThemedStyles } from "../theme/ThemeProvider";
-import { useEffect,useState } from 'react';
-import { Pressable,StyleSheet,Text } from 'react-native';
 
-import { colors,spacing,typography } from '../theme/colors';
+import { borderRadius, spacing, typography } from "../theme/colors";
 
 type Props = {
   onResend: () => Promise<boolean>;
   disabled?: boolean;
+  /** Firebase chặn gửi lại SMS trong ~60s cho cùng số, nên mặc định đếm 60s. */
   delaySeconds?: number;
 };
 
-export function ResendOtpButton({ onResend, disabled = false, delaySeconds = 30 }: Props) {
- useLanguage();
+const pad = (value: number) => String(value).padStart(2, "0");
 
- const styles=useThemedStyles(base_styles);
+export function ResendOtpButton({
+  onResend,
+  disabled = false,
+  delaySeconds = 60,
+}: Props) {
+  useLanguage();
+
+  const colors = useThemeColors();
+
+  const styles = useThemedStyles(base_styles);
 
   const [secondsLeft, setSecondsLeft] = useState(delaySeconds);
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (secondsLeft <= 0) return undefined;
-    const timer = setTimeout(() => setSecondsLeft((current) => current - 1), 1000);
+    const timer = setTimeout(
+      () => setSecondsLeft((current) => current - 1),
+      1000,
+    );
     return () => clearTimeout(timer);
   }, [secondsLeft]);
 
+  const canPress = !disabled && !sending && secondsLeft <= 0;
+
   const handlePress = async () => {
-    if (disabled || sending || secondsLeft > 0) return;
+    if (!canPress) return;
     setSending(true);
     try {
       if (await onResend()) setSecondsLeft(delaySeconds);
@@ -36,31 +55,50 @@ export function ResendOtpButton({ onResend, disabled = false, delaySeconds = 30 
     }
   };
 
-  const isDisabled = disabled || sending || secondsLeft > 0;
-
   return (
     <Pressable
+      accessibilityLabel={i18nT(
+        canPress ? "Gửi lại mã OTP" : "Chưa thể gửi lại mã OTP",
+      )}
       accessibilityRole="button"
-      accessibilityState={{ disabled: isDisabled }}
-      disabled={isDisabled}
+      accessibilityState={{ disabled: !canPress }}
+      disabled={!canPress}
+      hitSlop={8}
       onPress={() => void handlePress()}
-      style={styles.button}
+      style={({ pressed }) => [
+        styles.button,
+        pressed && canPress && styles.buttonPressed,
+      ]}
     >
-      <Text style={[styles.label, isDisabled && styles.labelDisabled]}>
-        {i18nT(sending ? 'Đang gửi mã...' : secondsLeft > 0 ? i18nT("Gửi lại mã sau {0}s", {"0": secondsLeft}) : 'Gửi lại mã OTP')}
+      {sending ? (
+        <ActivityIndicator color={colors.primary} size="small" />
+      ) : null}
+      <Text style={[styles.label, canPress && styles.labelEnabled]}>
+        {sending
+          ? i18nT("Đang gửi lại mã...")
+          : secondsLeft > 0
+            ? `${i18nT("Gửi lại mã OTP sau")} (${pad(Math.floor(secondsLeft / 60))}:${pad(secondsLeft % 60)})`
+            : i18nT("Gửi lại mã OTP")}
       </Text>
     </Pressable>
   );
 }
 
-const base_styles = StyleSheet.create({
-  button: {
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.spaceSm,
-    paddingVertical: spacing.spaceXs,
-  },
-  label: { ...typography.labelMd, color: colors.primary },
-  labelDisabled: { color: colors.outline },
-});
+const base_styles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    button: {
+      minHeight: 44,
+      alignSelf: "flex-start",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.spaceSm,
+      paddingVertical: spacing.spaceXs,
+      paddingHorizontal: spacing.spaceXs,
+      borderRadius: borderRadius.default,
+    },
+    buttonPressed: {
+      backgroundColor: colors.primaryTint,
+    },
+    label: { ...typography.bodyMdMedium, color: colors.onSurfaceVariant },
+    labelEnabled: { color: colors.primary, fontWeight: "600" },
+  });

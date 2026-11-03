@@ -68,7 +68,12 @@ const submit = async () => {
       try {
         await registerWithBackend('driver', fullName, currentUser);
       } catch (cause) {
-        if (cause instanceof AuthApiError && cause.code === 'ACCOUNT_ALREADY_EXISTS') {
+        // The phone can already own a driver profile even when this Firebase identity is new
+        // (for example after the Firebase account was recreated). Signing in re-attaches it.
+        if (
+          cause instanceof AuthApiError &&
+          (cause.code === 'ACCOUNT_ALREADY_EXISTS' || cause.code === 'PHONE_ALREADY_EXISTS')
+        ) {
           await authenticateWithBackend('driver', currentUser);
         } else {
           throw cause;

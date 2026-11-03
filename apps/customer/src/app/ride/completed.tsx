@@ -1,1 +1,1 @@
-export { default } from '@/features/tracking/screens/TripCompletedScreen';
+export { default } from "@/features/tracking/screens/TripCompletedScreen";

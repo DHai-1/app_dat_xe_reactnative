@@ -1,1 +1,1 @@
-export { default } from '@/features/vehicles/screens/CustomerVehiclesScreen';
+export { default } from "@/features/vehicles/screens/CustomerVehiclesScreen";

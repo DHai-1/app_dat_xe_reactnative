@@ -1,24 +1,29 @@
 import { localizedAlert } from '@datxe/ui';
 import { translate as i18nT } from '@datxe/shared';
 import { useRefreshOnFocus } from '@/lib/useRefreshOnFocus';
+import { useScreenFocused } from '@/lib/useScreenFocused';
 import type { CustomerNotification } from '@datxe/shared';
 import { useQuery,useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { getCustomerNotifications,getUnreadNotificationCount,markAllCustomerNotificationsRead,markCustomerNotificationRead } from '../api';
 import { NotificationFilter,category } from '../components/NotificationScreenParts';
+/** Tự làm mới hộp thư để nhận thông báo mới mà không cần bấm tải lại. */
+const POLL_INTERVAL_MS = 20_000;
 export function useNotification() {
 const router = useRouter();
+const focused = useScreenFocused();
+const [refreshing, setRefreshing] = useState(false);
 const [filter, setFilter] = useState<NotificationFilter>('all');
 const client=useQueryClient();
-const query=useQuery({queryKey:['customer','getCustomerNotifications'],queryFn:getCustomerNotifications});
-const unread=useQuery({queryKey:['customer','getUnreadNotificationCount'],queryFn:getUnreadNotificationCount});
+const query=useQuery({queryKey:['customer','getCustomerNotifications'],queryFn:getCustomerNotifications,refetchOnMount:'always',refetchInterval:focused?POLL_INTERVAL_MS:false});
+const unread=useQuery({queryKey:['customer','getUnreadNotificationCount'],queryFn:getUnreadNotificationCount,refetchOnMount:'always',refetchInterval:focused?POLL_INTERVAL_MS:false});
 useRefreshOnFocus(query.refetch);useRefreshOnFocus(unread.refetch);
 const items=query.data ?? [];
 const unreadCount=unread.data ?? 0;
 const loading=query.isLoading || unread.isLoading;
 const error=query.error?.message ?? unread.error?.message ?? '';
-const refresh=()=>Promise.all([query.refetch(),unread.refetch()]);
+const refresh=async()=>{setRefreshing(true);try{await Promise.all([query.refetch(),unread.refetch()]);}finally{setRefreshing(false);}};
 const markRead = async (item: CustomerNotification) => {
     if (item.readAt) return;
     try {
@@ -46,5 +51,5 @@ const openNotification = async (item: CustomerNotification) => {
     }
   };
 const visible = items.filter((item) => filter === 'all' || category(item.type) === filter);
-return { router, filter, setFilter, items, unreadCount, loading, error, refresh, markAll, openNotification, visible };
+return { router, filter, setFilter, items, unreadCount, loading, error, refreshing, refresh, markAll, openNotification, visible };
 }

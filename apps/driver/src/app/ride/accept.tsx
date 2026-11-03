@@ -1,1 +1,1 @@
-export { default } from '@/features/offers/screens/AcceptScreen';
+export { default } from "@/features/offers/screens/AcceptScreen";

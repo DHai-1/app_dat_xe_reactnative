@@ -1,29 +1,23 @@
-import { translate as i18nT } from '@datxe/shared';
+import { translate as i18nT } from "@datxe/shared";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useState, type ReactNode } from "react";
+import {
+  StyleSheet,
+  View,
+  type KeyboardTypeOptions,
+  type StyleProp,
+  type TextInputProps,
+  type TextStyle,
+  type ViewStyle,
+} from "react-native";
+import type { ThemeColors } from "../theme/ThemeProvider";
+import { useThemeColors, useThemedStyles } from "../theme/ThemeProvider";
 import { useLanguage } from "../useLanguage";
-import { useThemeColors } from "../theme/ThemeProvider";
-import { useThemedStyles } from "../theme/ThemeProvider";
-import { MaterialIcons } from '@expo/vector-icons';
-import { useState,type ReactNode } from 'react';
-import {
-Pressable,
-StyleSheet,
-Text,
-TextInput,
-View,
-type KeyboardTypeOptions,
-type StyleProp,
-type TextInputProps,
-type TextStyle,
-type ViewStyle,
-} from 'react-native';
+import { MotionPressable as Pressable } from "./MotionPressable";
+import { ThemedTextInput as TextInput } from "./ThemedTextInput";
+import { Typography as Text } from "./Typography";
 
-import {
-borderRadius,
-colors,
-fontSize,
-spacing,
-typography,
-} from '../theme/colors';
+import { borderRadius, fontSize, spacing, typography } from "../theme/colors";
 
 type IconName = keyof typeof MaterialIcons.glyphMap;
 
@@ -39,8 +33,8 @@ export type InputProps = {
   /** Bật chế độ mật khẩu kèm nút hiện/ẩn ở bên phải. */
   secure?: boolean;
   keyboardType?: KeyboardTypeOptions;
-  autoCapitalize?: TextInputProps['autoCapitalize'];
-  autoComplete?: TextInputProps['autoComplete'];
+  autoCapitalize?: TextInputProps["autoCapitalize"];
+  autoComplete?: TextInputProps["autoComplete"];
   maxLength?: number;
   editable?: boolean;
   accessibilityLabel?: string;
@@ -65,11 +59,11 @@ export function Input({
   style,
   inputStyle,
 }: InputProps) {
- useLanguage();
+  useLanguage();
 
- const colors=useThemeColors();
+  const colors = useThemeColors();
 
- const styles=useThemedStyles(base_styles);
+  const styles = useThemedStyles(base_styles);
 
   const [focused, setFocused] = useState(false);
   const [secureVisible, setSecureVisible] = useState(false);
@@ -86,14 +80,14 @@ export function Input({
       ) : null}
 
       <View style={[styles.row, focused && styles.rowFocused, style]}>
-      {icon ? (
-        <MaterialIcons
-          color={colors.secondary}
-          name={icon}
-          size={fontSize.iconXl}
-          style={styles.icon}
-        />
-      ) : null}
+        {icon ? (
+          <MaterialIcons
+            color={colors.secondary}
+            name={icon}
+            size={fontSize.iconXl}
+            style={styles.icon}
+          />
+        ) : null}
 
         <TextInput
           accessibilityLabel={i18nT(accessibilityLabel ?? label)}
@@ -120,7 +114,7 @@ export function Input({
           >
             <MaterialIcons
               color={colors.secondary}
-              name={secureVisible ? 'visibility-off' : 'visibility'}
+              name={secureVisible ? "visibility-off" : "visibility"}
               size={fontSize.iconXl}
             />
           </Pressable>
@@ -130,44 +124,46 @@ export function Input({
   );
 }
 
-const base_styles = StyleSheet.create({
-  field: {
-    gap: spacing.gap1_5,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  label: {
-    ...typography.labelLg,
-    color: colors.onSurface,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surfaceContainerLow,
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing.spaceMd,
-    height: spacing.inputHeight,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  rowFocused: {
-    backgroundColor: colors.surfaceContainerLowest,
-    borderColor: colors.primary,
-  },
-  icon: {
-    marginRight: spacing.px3,
-  },
-  input: {
-    ...typography.bodyMd,
-    color: colors.onSurface,
-    flex: 1,
-    padding: 0,
-  },
-  visibilityButton: {
-    padding: spacing.py1,
-    borderRadius: borderRadius.lg,
-  },
-});
+const base_styles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    field: {
+      gap: spacing.gap1_5,
+    },
+    labelRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    label: {
+      ...typography.labelLg,
+      fontSize: 13,
+      color: colors.onSurface,
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surfaceContainerLowest,
+      borderRadius: borderRadius.xl,
+      paddingHorizontal: spacing.px3_5,
+      height: spacing.inputHeight,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+    },
+    rowFocused: {
+      borderColor: colors.primary,
+    },
+    icon: {
+      marginRight: spacing.px2_5,
+    },
+    input: {
+      ...typography.bodyLg,
+      fontSize: 15,
+      color: colors.onSurface,
+      flex: 1,
+      padding: 0,
+    },
+    visibilityButton: {
+      padding: spacing.py1,
+      borderRadius: borderRadius.lg,
+    },
+  });

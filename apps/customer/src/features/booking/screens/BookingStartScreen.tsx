@@ -1,9 +1,20 @@
-import { useLanguage } from '@datxe/ui';
-import { ActivityIndicator, View } from 'react-native';
-import { useBookingStart } from '../hooks/useBookingStart';
+import { useLanguage, useThemedStyles } from "@datxe/ui";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { useBookingStart } from "../hooks/useBookingStart";
 export default function BookingStartScreen() {
- useLanguage();
+  const extra = useThemedStyles(extraStyles);
+
+  useLanguage();
 
   useBookingStart();
-  return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator /></View>;
+  return (
+    <View style={extra.item1}>
+      <ActivityIndicator />
+    </View>
+  );
 }
+
+const extraStyles = () =>
+  StyleSheet.create({
+    item1: { flex: 1, justifyContent: "center" },
+  });

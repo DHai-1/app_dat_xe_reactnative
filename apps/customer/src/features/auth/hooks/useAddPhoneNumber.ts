@@ -10,7 +10,7 @@ const router = useRouter();
 const [user] = useState(() => getFirebaseUser());
 const isGoogleAccount = Boolean(user?.providerData.some((item) => item.providerId === 'google.com'));
 const isFacebookAccount = Boolean(user?.providerData.some((item) => item.providerId === 'facebook.com'));
-const accountProvider = isGoogleAccount ? 'Google' : isFacebookAccount ? 'Facebook' : 'DriveMate';
+const accountProvider = isGoogleAccount ? 'Google' : isFacebookAccount ? 'Facebook' : 'PtitGo';
 const [country, setCountry] = useState(DEFAULT_PHONE_COUNTRY);
 const [phone, setPhone] = useState('');
 const [otp, setOtp] = useState('');

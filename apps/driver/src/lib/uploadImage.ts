@@ -1,6 +1,8 @@
 import { request } from '@/lib/api';
 import type { CustomerImageFile } from '@datxe/shared';
 import { AuthApiError } from '@datxe/shared';
+import { File } from 'expo-file-system';
+import { fetch } from 'expo/fetch';
 import { Platform } from 'react-native';
 export async function uploadDriverImage(
   file: CustomerImageFile,
@@ -23,11 +25,12 @@ export async function uploadDriverImage(
     const localImage = await fetch(file.uri);
     form.append('file', await localImage.blob(), fileName);
   } else {
-    form.append('file', {
-      uri: file.uri,
-      name: fileName,
-      type: file.mimeType || 'image/jpeg',
-    } as unknown as Blob);
+    // Expo 58 fetch requires a Blob/File, not React Native's legacy URI object.
+    const localFile = new File(file.uri);
+    if (!localFile.exists || localFile.size === 0) {
+      throw new AuthApiError('Ảnh không còn trên thiết bị hoặc bị trống. Vui lòng chọn lại ảnh.', 'UPLOAD_FILE_MISSING');
+    }
+    form.append('file', localFile, file.fileName || localFile.name);
   }
   form.append('api_key', signature.apiKey);
   form.append('timestamp', String(signature.timestamp));

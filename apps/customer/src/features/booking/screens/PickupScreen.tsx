@@ -1,5 +1,6 @@
-import { useLanguage } from '@datxe/ui';
-import PlaceSelectionScreen from './PlaceSelectionScreen';
+import { useLanguage } from "@datxe/ui";
+import PlaceSelectionScreen from "./PlaceSelectionScreen";
 export default function PickupScreen() {
- useLanguage();
- return <PlaceSelectionScreen kind="pickup" />; }
+  useLanguage();
+  return <PlaceSelectionScreen kind="pickup" />;
+}

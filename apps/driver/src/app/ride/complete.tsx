@@ -1,1 +1,1 @@
-export { default } from '@/features/ride/screens/CompleteScreen';
+export { default } from "@/features/ride/screens/CompleteScreen";

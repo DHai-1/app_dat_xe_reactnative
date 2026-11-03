@@ -1,1 +1,1 @@
-export { default } from '@/features/auth/screens/ApprovalStatusScreen';
+export { default } from "@/features/auth/screens/ApprovalStatusScreen";

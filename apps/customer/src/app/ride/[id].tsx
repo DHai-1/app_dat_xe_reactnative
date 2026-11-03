@@ -1,1 +1,1 @@
-export { default } from '@/features/tracking/screens/RideDetailScreen';
+export { default } from "@/features/tracking/screens/RideDetailScreen";

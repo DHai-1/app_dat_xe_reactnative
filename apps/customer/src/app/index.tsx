@@ -1,1 +1,1 @@
-export { default } from '@/features/auth/screens/SessionGateScreen';
+export { default } from "@/features/auth/screens/SessionGateScreen";

@@ -1,2 +1,4 @@
-import { DocumentForm } from '../components/DocumentForm';
-export default function LicenseUploadScreen(){return <DocumentForm/>;}
+import { DocumentForm } from "../components/DocumentForm";
+export default function LicenseUploadScreen() {
+  return <DocumentForm />;
+}

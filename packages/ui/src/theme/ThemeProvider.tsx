@@ -1,65 +1,233 @@
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { colors } from './colors';
-import { useColorScheme } from 'react-native';
-export type ThemeMode = 'system' | 'light' | 'dark';
-const light = { background:'#f7f9fb', surface:'#ffffff', card:'#ffffff', text:'#182230', textSecondary:'#667085', border:'#e4e7ec', primary:'#004ac6', danger:'#ba1a1a' };
-const dark = { background:'#0D121B', surface:'#141D2B', card:'#1B2738', text:'#EAF0FA', textSecondary:'#A7B5CC', border:'#304058', primary:'#9DBEFF', danger:'#FFB4AB' };
-const Context = createContext({ tokens:light, dark:false });
-export function ThemeProvider({ mode, children }: { mode:ThemeMode; children:ReactNode }) {
+import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { useColorScheme } from "react-native";
+import { colors } from "./colors";
+export type ThemeMode = "system" | "light" | "dark";
+export type ThemeBrand = "customer" | "driver";
+export type ThemeColors = { [K in keyof typeof colors]: string };
+/**
+ * Dark mode dùng lại đúng bộ màu đã duyệt: nền #111111, chữ #FFFFFF, phụ #888888,
+ * viền #888888, nhấn #FF4757. Không thêm màu mới ngoài token.
+ */
+const dark = {
+  background: "#111111",
+  surface: "#111111",
+  card: "#111111",
+  text: "#ffffff",
+  textSecondary: "#888888",
+  border: "#888888",
+  primary: "#ff4757",
+  danger: "#ff4757",
+};
+const darkColors = {
+  ...colors,
+  background: dark.background,
+  surface: dark.background,
+  surfaceDim: dark.background,
+  surfaceBright: "#111111",
+  surfaceContainerLowest: dark.surface,
+  surfaceContainerLow: dark.card,
+  surfaceContainer: dark.card,
+  surfaceContainerHigh: "#111111",
+  surfaceContainerHighest: "#111111",
+  surfaceVariant: "#111111",
+  onSurface: dark.text,
+  onBackground: dark.text,
+  onSurfaceVariant: dark.textSecondary,
+  outline: dark.border,
+  outlineVariant: dark.border,
+  outline70: "rgba(136,136,136,0.7)",
+  primary: dark.primary,
+  primaryContainer: "#ff4757",
+  onPrimary: "#ffffff",
+  onPrimaryContainer: "#ffffff",
+  primaryPressed: "#ff4757",
+  primarySoft: "#111111",
+  primaryFixed: "#111111",
+  primaryFixedDim: "#111111",
+  primaryFixedTint: "#111111",
+  primaryFixedTintSoft: "#111111",
+  primaryFixed20: "rgba(255,71,87,0.10)",
+  primaryFixed30: "rgba(255,71,87,0.14)",
+  primaryFixed40: "rgba(255,71,87,0.18)",
+  primaryFixed50: "rgba(255,71,87,0.22)",
+  onPrimaryFixed: "#ffffff",
+  onPrimaryFixedVariant: "#ff4757",
+  primary10: "rgba(255,71,87,0.10)",
+  primary15: "rgba(255,71,87,0.15)",
+  primaryTint: "rgba(255,71,87,0.12)",
+  primaryTintStrong: "rgba(255,71,87,0.2)",
+  surfaceTint: "#ff4757",
+  inversePrimary: "#ff4757",
+  inverseSurface: "#ffffff",
+  inverseOnSurface: "#111111",
+  secondary: "#888888",
+  onSecondary: "#111111",
+  secondaryContainer: "#111111",
+  onSecondaryContainer: "#e0e0e0",
+  secondaryFixed: "#111111",
+  secondaryFixedDim: "#888888",
+  onSecondaryFixed: "#ffffff",
+  onSecondaryFixedVariant: "#888888",
+  tertiary: "#e0e0e0",
+  onTertiary: "#111111",
+  tertiaryContainer: "#e0e0e0",
+  onTertiaryContainer: "#111111",
+  tertiaryFixed: "#111111",
+  tertiaryFixedDim: "#888888",
+  onTertiaryFixed: "#e0e0e0",
+  onTertiaryFixedVariant: "#888888",
+  error: dark.danger,
+  onError: "#ffffff",
+  errorContainer: "rgba(255,71,87,0.18)",
+  onErrorContainer: "#ffffff",
+  success: "#e0e0e0",
+  successStrong: "#e0e0e0",
+  successContainer: "#111111",
+  onSuccessContainer: "#ffffff",
+  emerald: "#e0e0e0",
+  disabled: "#333333",
+  disabledText: "#666666",
+  cardSurface: "#1c1c1e",
+  inputSurface: "#2c2c2e",
+  fieldBorder: "#333333",
+  verified: "#4ade80",
+  surface80: "rgba(17,17,17,0.8)",
+  surface85: "rgba(17,17,17,0.85)",
+  surface20: "rgba(17,17,17,0.2)",
+  surfaceContainerLowest95: "rgba(17,17,17,0.95)",
+  surfaceContainerLowest90: "rgba(17,17,17,0.9)",
+  surfaceContainerLow50: "rgba(17,17,17,0.5)",
+  surfaceContainerHigh60: "rgba(17,17,17,0.6)",
+  surfaceContainerHighest60: "rgba(17,17,17,0.6)",
+  secondaryFixed40: "rgba(136,136,136,0.4)",
+  secondaryFixed50: "rgba(136,136,136,0.5)",
+  secondaryContainer40: "rgba(136,136,136,0.4)",
+  tertiaryFixed40: "rgba(224,224,224,0.4)",
+  inverseSurface40: "rgba(255,255,255,0.4)",
+  inverseSurface80: "rgba(17,17,17,0.9)",
+  errorContainer30: "rgba(255,71,87,0.18)",
+  onPrimary20: "rgba(255,255,255,0.2)",
+  headerShadow: "#000000",
+  navShadow: "#000000",
+  cardShadow: "#000000",
+  cardShadowStrong: "#000000",
+  sheetShadow: "#000000",
+  keyShadow: "#000000",
+};
 
- const system = useColorScheme(); const isDark = mode === 'dark' || (mode === 'system' && system === 'dark');
- return <Context.Provider value={{ tokens:isDark ? dark : light, dark:isDark }}>{children}</Context.Provider>;
+const driverLight: Partial<ThemeColors> = {
+  primary: "#007F46",
+  primaryContainer: "#007F46",
+  onPrimary: "#FFFFFF",
+  onPrimaryContainer: "#FFFFFF",
+  primarySoft: "#EFFAF4",
+  primaryFixed: "#D7F4E4",
+  primaryFixedDim: "#A5DEC0",
+  primaryFixedTint: "#E6F6ED",
+  primaryFixedTintSoft: "#F1FAF5",
+  onPrimaryFixed: "#002D19",
+  onPrimaryFixedVariant: "#00552E",
+  primary10: "rgba(0,127,70,0.10)",
+  primary15: "rgba(0,127,70,0.15)",
+  primaryTint: "rgba(0,127,70,0.10)",
+  primaryTintStrong: "rgba(0,127,70,0.18)",
+  primaryPressed: "#006638",
+  primaryFixed20: "#EFFAF4",
+  primaryFixed30: "#E6F6ED",
+  primaryFixed40: "#DFF4E8",
+  primaryFixed50: "#D7F4E4",
+  surfaceTint: "#007F46",
+  inversePrimary: "#7ED9AA",
+};
+const driverDark: Partial<ThemeColors> = {
+  primary: "#7ED9AA",
+  primaryContainer: "#7ED9AA",
+  onPrimary: "#003820",
+  onPrimaryContainer: "#003820",
+  primarySoft: "#142E24",
+  primaryFixed: "#1B3D2E",
+  primaryFixedDim: "#2D634A",
+  primaryFixedTint: "#172F25",
+  primaryFixedTintSoft: "#13271F",
+  onPrimaryFixed: "#C6F4DC",
+  onPrimaryFixedVariant: "#A0E7C1",
+  primary10: "rgba(126,217,170,0.10)",
+  primary15: "rgba(126,217,170,0.15)",
+  primaryTint: "rgba(126,217,170,0.12)",
+  primaryTintStrong: "rgba(126,217,170,0.2)",
+  primaryPressed: "#5CBF8F",
+  primaryFixed20: "#13271F",
+  primaryFixed30: "#172F25",
+  primaryFixed40: "#193728",
+  primaryFixed50: "#1B3D2E",
+  surfaceTint: "#7ED9AA",
+  inversePrimary: "#007F46",
+};
+const palettes = {
+  customer: {
+    light: colors,
+    dark: darkColors,
+  },
+  driver: {
+    light: { ...colors, ...driverLight },
+    dark: {
+      ...darkColors,
+      ...driverDark,
+      outline70: dark.textSecondary,
+      driverHeader: dark.card,
+    },
+  },
+};
+export function getThemeColors(
+  brand: ThemeBrand,
+  isDark: boolean,
+): ThemeColors {
+  return palettes[brand][isDark ? "dark" : "light"];
+}
+function themeValue(brand: ThemeBrand, isDark: boolean) {
+  const c = getThemeColors(brand, isDark);
+  return {
+    brand,
+    dark: isDark,
+    colors: c,
+    tokens: {
+      background: c.background,
+      surface: c.surfaceContainerLowest,
+      card: c.surfaceContainerLow,
+      text: c.onSurface,
+      textSecondary: c.onSurfaceVariant,
+      border: c.outlineVariant,
+      primary: c.primary,
+      danger: c.error,
+    },
+  };
+}
+const Context = createContext(themeValue("customer", false));
+export function ThemeProvider({
+  mode = "system",
+  brand = "customer",
+  children,
+}: {
+  mode?: ThemeMode;
+  brand?: ThemeBrand;
+  children: ReactNode;
+}) {
+  const system = useColorScheme();
+  const isDark = mode === "dark" || (mode === "system" && system === "dark");
+  const value = useMemo(() => themeValue(brand, isDark), [brand, isDark]);
+  return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 export const useTheme = () => useContext(Context);
-
-const darkColors = {
- ...colors,
- background:dark.background, surface:dark.background, surfaceDim:dark.background,
- surfaceBright:'#25344A', surfaceContainerLowest:dark.surface,
- surfaceContainerLow:dark.card, surfaceContainer:'#202E42', surfaceContainerHigh:'#26364D', surfaceContainerHighest:'#30425B', surfaceVariant:'#26364D',
- onSurface:dark.text,onBackground:dark.text,onSurfaceVariant:dark.textSecondary,
- outline:'#7788A2',outlineVariant:dark.border, primary:dark.primary, primaryContainer:'#285CC4', onPrimary:'#FFFFFF',onPrimaryContainer:'#FFFFFF',
- primarySoft:'#172C4C',primaryFixed:'#213C63',primaryFixedDim:'#365784',primaryFixedTint:'#172C4C',primaryFixedTintSoft:'#14243C',onPrimaryFixed:'#D8E7FF',onPrimaryFixedVariant:'#BDD4FF',
- secondary:'#B9C7E0',secondaryContainer:'#2B3C56',onSecondaryContainer:'#D5E3FA',secondaryFixed:'#243651',secondaryFixedDim:'#3A506F',onSecondaryFixed:'#EAF0FA',onSecondaryFixedVariant:'#BDCCE3',
- tertiary:'#F3C16C',tertiaryContainer:'#69491D',onTertiaryContainer:'#FFE4B9',tertiaryFixed:'#3B2D1E',tertiaryFixedDim:'#79572C',onTertiaryFixed:'#FFE4B9',onTertiaryFixedVariant:'#F3C16C',
- error:dark.danger,errorContainer:'#442526',onErrorContainer:'#FFDAD6',success:'#6DDBA5',successStrong:'#6DDBA5',successContainer:'#16392D',onSuccessContainer:'#A4F1C8',
- inverseSurface:'#DAE3F1',inverseOnSurface:'#192332',
- surface80:'rgba(13,18,27,0.8)',surface85:'rgba(13,18,27,0.85)',surface20:'rgba(13,18,27,0.2)',surfaceContainerLowest95:'rgba(20,29,43,0.95)',surfaceContainerLowest90:'rgba(20,29,43,0.9)',
- primary10:'rgba(157,190,255,0.10)',primary15:'rgba(157,190,255,0.15)',primaryFixed50:'#1C3354',primaryFixed40:'#1B304E',primaryFixed30:'#172A45',primaryFixed20:'#16243A',
- secondaryFixed40:'#22324A',secondaryFixed50:'#273851',secondaryContainer40:'#22324A',tertiaryFixed40:'#3B2D1E',surfaceContainerLow50:'#182436',surfaceContainerHigh60:'#24334A',surfaceContainerHighest60:'#2D3E55',
- cardShadow:'rgba(0,0,0,0.20)',cardShadowStrong:'rgba(0,0,0,0.32)',headerShadow:'rgba(0,0,0,0.12)',navShadow:'rgba(0,0,0,0.22)',
-};
-export function useThemeColors(): { [K in keyof typeof colors]: string } { const {dark}=useTheme(); return dark ? darkColors : colors; }
-
-// Convert legacy styles once per theme, keeping light layouts and native map colors intact.
-export function resolveThemeColor(value:string, property:string, isDark:boolean):string {
- if(!isDark)return value;
- const lower=value.toLowerCase();
- const entries=Object.entries(colors);
- const token=entries.find(([key,color])=>color.toLowerCase()===lower && !['onPrimary','onSecondary','onTertiary','onError'].includes(key));
- if(token && token[0] in darkColors) {
-   if(property==='backgroundColor' && token[0]==='primary')return darkColors.primaryContainer;
-   if(lower==='#ffffff')return property==='backgroundColor'?dark.surface:property.toLowerCase().includes('border')?dark.border:value;
-   return darkColors[token[0] as keyof typeof darkColors];
- }
- if(['#fff','#ffffff'].includes(lower))return property==='backgroundColor'?dark.surface:property.toLowerCase().includes('border')?dark.border:value;
- if(['#f5f7fa','#f9fafb','#f8fafc','#f2f4f7','#f3f4f6','#f5f5f5'].includes(lower))return property==='backgroundColor'?dark.background:dark.text;
- if(['#182230','#101828','#111827','#1d2939','#344054','#475467','#0f172a','#1f2937'].includes(lower))return property==='backgroundColor'?dark.card:dark.text;
- if(['#667085','#64748b','#6b7280','#98a2b3','#94a3b8'].includes(lower))return dark.textSecondary;
- if(['#eaecf0','#e4e7ec','#e5e7eb','#d0d5dd','#cbd5e1'].includes(lower))return dark.border;
- if(['#edf6ff','#eff6ff','#eff8ff','#e0f2fe','#dbeafe','#e9f0f3'].includes(lower))return '#172C4C';
- if(['#ecfdf3','#ecfdf5','#f0fdf4','#dcfce7','#d1fadf'].includes(lower))return '#16392D';
- if(['#fef3f2','#fef2f2','#fee4e2','#fee2e2'].includes(lower))return '#442526';
- if(['#fffaeb','#fffbeb','#fef3c7'].includes(lower))return '#3B2D1E';
- if(['#b42318','#d92d20','#f04438','#dc2626'].includes(lower))return property==='backgroundColor'?value:dark.danger;
- if(['#039855','#027a48','#15803d','#12b76a'].includes(lower))return property==='backgroundColor'?value:'#6DDBA5';
- return value;
-}
-export function useThemeColor(){const {dark}=useTheme();return useMemo(()=>(value:string,property='color')=>resolveThemeColor(value,property,dark),[dark]);}
-export function useThemedStyles<T extends Record<string,object>>(base:T):T {
- const {dark}=useTheme();
- return useMemo(()=>{
-  if(!dark)return base;
-  return Object.fromEntries(Object.entries(base).map(([key,style])=>[key,Object.fromEntries(Object.entries(style).map(([property,value])=>[property,typeof value==='string' && /color$/i.test(property)?resolveThemeColor(value,property,true):value]))])) as T;
- },[base,dark]);
+export const useThemeColors = () => useTheme().colors;
+export function useThemedStyles<T>(
+  factory: ((colors: ThemeColors) => T) | T,
+): T {
+  const colors = useThemeColors();
+  return useMemo(
+    () =>
+      typeof factory === "function"
+        ? (factory as (colors: ThemeColors) => T)(colors)
+        : factory,
+    [factory, colors],
+  );
 }

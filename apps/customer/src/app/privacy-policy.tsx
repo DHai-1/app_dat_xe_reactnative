@@ -1,1 +1,1 @@
-export { PrivacyPolicyScreen as default } from '@/features/support/screens/LegalDocumentsScreen';
+export { PrivacyPolicyScreen as default } from "@/features/support/screens/LegalDocumentsScreen";

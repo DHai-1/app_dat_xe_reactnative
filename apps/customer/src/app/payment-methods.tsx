@@ -1,1 +1,1 @@
-export { default } from '@/features/profile/screens/PaymentMethodsScreen';
+export { default } from "@/features/profile/screens/PaymentMethodsScreen";

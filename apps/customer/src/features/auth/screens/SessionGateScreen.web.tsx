@@ -1,8 +1,8 @@
-import { useLanguage } from '@datxe/ui';
-import { Redirect } from 'expo-router';
+import { useLanguage } from "@datxe/ui";
+import { Redirect } from "expo-router";
 
 export default function WebIndex() {
- useLanguage();
+  useLanguage();
 
   return <Redirect href="/(auth)/login" />;
 }

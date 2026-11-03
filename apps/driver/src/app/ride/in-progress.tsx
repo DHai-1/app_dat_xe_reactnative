@@ -1,1 +1,1 @@
-export { default } from '@/features/ride/screens/InProgressScreen';
+export { default } from "@/features/ride/screens/InProgressScreen";

@@ -1,36 +1,37 @@
-import { translate as i18nT } from '@datxe/shared';
+import { translate as i18nT } from "@datxe/shared";
+import { MaterialIcons } from "@expo/vector-icons";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  type StyleProp,
+  type TextStyle,
+  type ViewStyle,
+} from "react-native";
+import type { ThemeColors } from "../theme/ThemeProvider";
+import { useThemeColors, useThemedStyles } from "../theme/ThemeProvider";
 import { useLanguage } from "../useLanguage";
-import { useThemedStyles } from "../theme/ThemeProvider";
-import { MotionPressable } from './MotionPressable';
-import { MaterialIcons } from '@expo/vector-icons';
-import {
-ActivityIndicator,
+import { MotionPressable } from "./MotionPressable";
+import { Typography as Text } from "./Typography";
 
-StyleSheet,
-Text,
-type StyleProp,
-type TextStyle,
-type ViewStyle,
-} from 'react-native';
-
-import {
-borderRadius,
-colors,
-fontSize,
-spacing,
-typography,
-} from '../theme/colors';
+import { borderRadius, fontSize, spacing, typography } from "../theme/colors";
 
 type IconName = keyof typeof MaterialIcons.glyphMap;
 
-export type ButtonVariant = 'primary' | 'tertiary';
+/**
+ * Kiểu nút theo hệ Urban Pulse:
+ * - primary: nền coral đặc, chữ trắng, nhấn đậm hơn khi pressed.
+ * - secondary: nền xám nhạt, chữ than.
+ * - ghost: trong suốt, chữ coral.
+ * - tertiary: nền emerald (hành động phụ mang tính xác nhận).
+ */
+export type ButtonVariant = "primary" | "secondary" | "tertiary" | "ghost";
 
-export type ButtonIconPosition = 'leading' | 'trailing';
+export type ButtonIconPosition = "leading" | "trailing";
 
 export type ButtonProps = {
   label: string;
   onPress?: () => void;
-  /** Màu nền nút. Mặc định 'primary' (colors.primaryContainer). */
+  /** Kiểu nút. Mặc định 'primary'. */
   variant?: ButtonVariant;
   /** Icon MaterialIcons hiển thị cạnh nhãn. */
   icon?: IconName;
@@ -38,7 +39,7 @@ export type ButtonProps = {
   iconPosition?: ButtonIconPosition;
   /** Kích thước icon (px). Mặc định fontSize.iconLg. */
   iconSize?: number;
-  /** Màu icon và spinner. Mặc định colors.onPrimary. */
+  /** Màu icon và spinner. Mặc định theo variant. */
   contentColor?: string;
   loading?: boolean;
   /** Nhãn thay thế khi đang loading. */
@@ -46,7 +47,7 @@ export type ButtonProps = {
   /** Thay spinner bằng icon MaterialIcons này (hiển thị phía trước) khi loading. */
   loadingIcon?: IconName;
   disabled?: boolean;
-  /** Làm mờ nút khi bị disabled. Mặc định true. */
+  /** Làm mờ nút khi bị disabled. Mặc định true (đổi sang nền xám). */
   dimWhenDisabled?: boolean;
   numberOfLines?: number;
   accessibilityLabel?: string;
@@ -57,11 +58,11 @@ export type ButtonProps = {
 export function Button({
   label,
   onPress,
-  variant = 'primary',
+  variant = "primary",
   icon,
-  iconPosition = 'trailing',
+  iconPosition = "trailing",
   iconSize = fontSize.iconLg,
-  contentColor = colors.onPrimary,
+  contentColor: customContentColor,
   loading = false,
   loadingLabel,
   loadingIcon,
@@ -72,20 +73,33 @@ export function Button({
   style,
   textStyle,
 }: ButtonProps) {
- useLanguage();
+  const colors = useThemeColors();
+  useLanguage();
 
- const styles=useThemedStyles(base_styles);
+  const styles = useThemedStyles(base_styles);
 
   const isDisabled = disabled || loading;
+  const neutral = isDisabled && dimWhenDisabled;
+  const contentColor =
+    customContentColor ??
+    (neutral
+      ? colors.disabledText
+      : variant === "primary"
+        ? colors.onPrimaryContainer
+        : variant === "secondary"
+          ? colors.onSurface
+          : variant === "tertiary"
+            ? colors.onTertiaryContainer
+            : colors.primary);
   const showSpinner = loading && !loadingIcon;
   const leadingIcon = loading
     ? loadingIcon
-    : iconPosition === 'leading'
+    : iconPosition === "leading"
       ? icon
       : undefined;
   const trailingIcon = loading
     ? undefined
-    : iconPosition === 'trailing'
+    : iconPosition === "trailing"
       ? icon
       : undefined;
 
@@ -95,10 +109,21 @@ export function Button({
       accessibilityRole="button"
       disabled={isDisabled}
       onPress={onPress}
-      style={[
+      style={({ pressed }) => [
         styles.container,
-        variant === 'tertiary' && styles.containerTertiary,
-        disabled && dimWhenDisabled && styles.containerDisabled,
+        variant === "primary" && styles.primary,
+        variant === "secondary" && styles.secondary,
+        variant === "tertiary" && styles.tertiary,
+        variant === "ghost" && styles.ghost,
+        pressed && !isDisabled && variant === "primary" && styles.primaryPressed,
+        pressed &&
+          !isDisabled &&
+          variant === "secondary" &&
+          styles.secondaryPressed,
+        pressed && !isDisabled && variant === "ghost" && styles.ghostPressed,
+        pressed && !isDisabled && variant === "tertiary" && styles.tertiaryPressed,
+        neutral && styles.neutral,
+        isDisabled && !neutral && styles.faded,
         style,
       ]}
     >
@@ -106,42 +131,77 @@ export function Button({
         <ActivityIndicator color={contentColor} size="small" />
       ) : null}
       {leadingIcon ? (
-        <MaterialIcons color={contentColor} name={leadingIcon} size={iconSize} />
+        <MaterialIcons
+          color={contentColor}
+          name={leadingIcon}
+          size={iconSize}
+        />
       ) : null}
-      <Text numberOfLines={numberOfLines} style={[styles.label, textStyle]}>
+      <Text
+        numberOfLines={numberOfLines}
+        style={[styles.label, { color: contentColor }, textStyle]}
+      >
         {i18nT(loading && loadingLabel ? loadingLabel : label)}
       </Text>
       {trailingIcon ? (
-        <MaterialIcons color={contentColor} name={trailingIcon} size={iconSize} />
+        <MaterialIcons
+          color={contentColor}
+          name={trailingIcon}
+          size={iconSize}
+        />
       ) : null}
     </MotionPressable>
   );
 }
 
-const base_styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    height: spacing.ctaHeight,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.primaryContainer,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.spaceXs,
-    shadowColor: colors.onSurface,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  containerTertiary: {
-    backgroundColor: colors.tertiaryContainer,
-  },
-  containerDisabled: {
-    opacity: spacing.disabledOpacity,
-  },
-  label: {
-    ...typography.labelLg,
-    color: colors.onPrimary,
-  },
-});
+const base_styles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      width: "100%",
+      minHeight: spacing.buttonPillHeight,
+      paddingVertical: spacing.px2,
+      borderRadius: borderRadius.xl,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.spaceSm,
+      paddingHorizontal: spacing.px5,
+      borderWidth: 1,
+      borderColor: colors.transparent,
+    },
+    primary: {
+      backgroundColor: colors.primaryContainer,
+    },
+    primaryPressed: {
+      backgroundColor: colors.primaryPressed,
+    },
+    secondary: {
+      backgroundColor: colors.surfaceContainerLowest,
+      borderColor: colors.outlineVariant,
+    },
+    secondaryPressed: {
+      backgroundColor: colors.surfaceContainer,
+    },
+    tertiary: {
+      backgroundColor: colors.tertiaryContainer,
+    },
+    tertiaryPressed: {
+      backgroundColor: colors.tertiary,
+    },
+    ghost: {
+      backgroundColor: colors.transparent,
+    },
+    ghostPressed: {
+      backgroundColor: colors.primaryTint,
+    },
+    neutral: {
+      backgroundColor: colors.disabled,
+    },
+    faded: {
+      opacity: spacing.disabledOpacity,
+    },
+    label: {
+      ...typography.labelLg,
+      letterSpacing: 0.1,
+    },
+  });

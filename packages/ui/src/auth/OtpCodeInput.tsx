@@ -1,10 +1,15 @@
-import { translate as i18nT } from '@datxe/shared';
+import { translate as i18nT } from "@datxe/shared";
+import { useState } from "react";
+import { StyleSheet, View, type TextInputProps } from "react-native";
+import {
+  Typography as Text,
+  ThemedTextInput as TextInput,
+} from "../components";
+import type { ThemeColors } from "../theme/ThemeProvider";
+import { useThemeColors, useThemedStyles } from "../theme/ThemeProvider";
 import { useLanguage } from "../useLanguage";
-import { useThemedStyles } from "../theme/ThemeProvider";
-import { useState } from 'react';
-import { StyleSheet,Text,TextInput,View,type TextInputProps } from 'react-native';
 
-import { borderRadius,colors,spacing,typography } from '../theme/colors';
+import { borderRadius, spacing, typography } from "../theme/colors";
 
 type Props = {
   value: string;
@@ -21,9 +26,11 @@ export function OtpCodeInput({
   disabled = false,
   accessibilityLabel = i18nT("Mã xác thực 6 chữ số"),
 }: Props) {
- useLanguage();
+  const colors = useThemeColors();
 
- const styles=useThemedStyles(base_styles);
+  useLanguage();
+
+  const styles = useThemedStyles(base_styles);
 
   const [focused, setFocused] = useState(false);
   const activeIndex = Math.min(value.length, 5);
@@ -31,19 +38,26 @@ export function OtpCodeInput({
   return (
     <View style={styles.container}>
       <View pointerEvents="none" style={styles.codeBoxes}>
-        {Array.from({ length: 6 }, (_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.codeBox,
-              Boolean(value[index]) && styles.codeBoxFilled,
-              focused && index === activeIndex && styles.codeBoxActive,
-              disabled && styles.codeBoxDisabled,
-            ]}
-          >
-            <Text style={styles.codeDigit}>{i18nT(value[index] ?? '')}</Text>
-          </View>
-        ))}
+        {Array.from({ length: 6 }, (_, index) => {
+          const isActive = focused && index === activeIndex;
+          return (
+            <View
+              key={index}
+              style={[
+                styles.codeBox,
+                Boolean(value[index]) && styles.codeBoxFilled,
+                isActive && styles.codeBoxActive,
+                disabled && styles.codeBoxDisabled,
+              ]}
+            >
+              {value[index] ? (
+                <Text style={styles.codeDigit}>{i18nT(value[index])}</Text>
+              ) : isActive ? (
+                <View style={styles.caret} />
+              ) : null}
+            </View>
+          );
+        })}
       </View>
       <TextInput
         accessibilityLabel={i18nT(accessibilityLabel)}
@@ -54,52 +68,60 @@ export function OtpCodeInput({
         keyboardType="number-pad"
         maxLength={6}
         onBlur={() => setFocused(false)}
-        onChangeText={(text) => onChange(text.replace(/\D/g, '').slice(0, 6))}
+        onChangeText={(text) => onChange(text.replace(/\D/g, "").slice(0, 6))}
         onFocus={() => setFocused(true)}
-        selectionColor="transparent"
+        selectionColor={colors.transparent}
         style={styles.input}
-        textContentType={'oneTimeCode' as TextInputProps['textContentType']}
+        textContentType={"oneTimeCode" as TextInputProps["textContentType"]}
         value={value}
       />
     </View>
   );
 }
 
-const base_styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    maxWidth: spacing.otpMaxWidth,
-    alignSelf: 'center',
-  },
-  codeBoxes: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.spaceXs,
-  },
-  codeBox: {
-    flex: 1,
-    height: 56,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceContainerLowest,
-  },
-  codeBoxFilled: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary10,
-  },
-  codeBoxActive: {
-    borderColor: colors.primary,
-    borderWidth: 2,
-  },
-  codeBoxDisabled: { opacity: 0.55 },
-  codeDigit: { ...typography.headlineMd, color: colors.onSurface },
-  input: {
-    ...StyleSheet.absoluteFill,
-    opacity: 0.02,
-    color: colors.onSurface,
-  },
-});
+const base_styles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      width: "100%",
+      maxWidth: spacing.otpMaxWidth,
+      alignSelf: "center",
+    },
+    codeBoxes: {
+      width: "100%",
+      flexDirection: "row",
+      justifyContent: "space-between",
+      gap: spacing.gap1_5,
+    },
+    codeBox: {
+      flex: 1,
+      height: spacing.inputHeight,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderRadius: borderRadius.xl,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surfaceContainerLowest,
+    },
+    codeBoxFilled: {
+      backgroundColor: colors.surfaceContainerLowest,
+      borderColor: colors.outlineVariant,
+    },
+    codeBoxActive: {
+      backgroundColor: colors.surfaceContainerLowest,
+      borderColor: colors.primary,
+      borderWidth: 2,
+    },
+    codeBoxDisabled: { opacity: spacing.disabledOpacity },
+    codeDigit: { ...typography.headlineMd, color: colors.onSurface },
+    caret: {
+      width: spacing.cursorWidth,
+      height: spacing.cursorHeight,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.primary,
+    },
+    input: {
+      ...StyleSheet.absoluteFill,
+      opacity: 0.02,
+      color: colors.onSurface,
+    },
+  });

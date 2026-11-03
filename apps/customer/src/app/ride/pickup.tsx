@@ -1,1 +1,1 @@
-export { default } from '@/features/booking/screens/PickupScreen';
+export { default } from "@/features/booking/screens/PickupScreen";

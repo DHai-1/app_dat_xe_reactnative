@@ -45,7 +45,7 @@ export const ProfileScreenSUPPORT_SECTION: ProfileScreenMenuItem[] = [
 export const ProfileScreenTONE_STYLES: Record<ProfileScreenMenuTone, { box: string; icon: string }> = {
   primary: { box: 'primaryFixed', icon: 'primary' },
   tertiary: { box: 'tertiaryFixed', icon: 'tertiary' },
-  secondary: { box: 'secondaryFixed', icon: 'secondary' },
+  secondary: { box: 'secondaryFixed', icon: 'onSurface' },
   high: { box: 'surfaceContainerHigh', icon: 'primary' },
   error: { box: 'errorContainer', icon: 'error' },
 };

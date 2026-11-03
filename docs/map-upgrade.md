@@ -34,7 +34,7 @@ Backend lấy loại xe từ phương tiện thuộc khách; không tin loại x
 
 Khách nhập pickupNote riêng, chỉnh vị trí bằng cách kéo ghim hoặc dịch bản đồ. Driver nhận note ở offer, chuyến đang chạy và biên bản. Màn hình driver dùng API thật để nhận/bỏ qua yêu cầu, chuyển trạng thái và gửi biên bản (4 góc bắt buộc, đồng hồ tùy chọn); khách vẫn phải xác nhận biên bản theo backend.
 
-Nút “Mở chỉ đường” dùng Google Maps URL tới tọa độ, mở app nếu cài, nếu không dùng trình duyệt. Tuyến trong app bản đồ ngoài do ứng dụng đó tính; không dùng tuyến ngoài để thay giá/tuyến đã lưu. Không tích hợp turn-by-turn bên trong DriveMate.
+Nút “Mở chỉ đường” dùng Google Maps URL tới tọa độ, mở app nếu cài, nếu không dùng trình duyệt. Tuyến trong app bản đồ ngoài do ứng dụng đó tính; không dùng tuyến ngoài để thay giá/tuyến đã lưu. Không tích hợp turn-by-turn bên trong PtitGo.
 
 ## Kiểm tra
 

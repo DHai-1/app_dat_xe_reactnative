@@ -1,7 +1,7 @@
 import type { RideCoordinates } from '@datxe/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { reverseBookingPlace } from '../api';
 import { DEFAULT_MAP_CENTER } from '../bookingUtils';
 import { useBookingDraft } from '../store';
@@ -20,10 +20,25 @@ export function useMapPicker() {
   const [selection, setSelection] = useState<{ key: string; point: RideCoordinates } | null>(null);
   useEffect(() => {
     if (mapMoving || !point || !mapReady) return;
-    const timer = setTimeout(() => setSelection(previous => previous?.key === pointKey ? previous : { key: pointKey, point }), 600);
+    // Chờ bản đồ dừng hẳn rồi mới geocode: 1 lần gọi Goong cho mỗi lần thả tay.
+    const timer = setTimeout(() => setSelection(previous => previous?.key === pointKey ? previous : { key: pointKey, point }), 450);
     return () => clearTimeout(timer);
   }, [mapMoving, point, pointKey, mapReady]);
-  const setMapMoving = useCallback((value: boolean) => updateMapMoving(value), []);
+  // Tự thoát trạng thái "đang di chuyển" nếu Mapbox không bắn onMapIdle,
+  // để màn ghim không kẹt ở "Đang xác định địa chỉ…".
+  const movingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setMapMoving = useCallback((value: boolean) => {
+    if (movingTimer.current) clearTimeout(movingTimer.current);
+    if (!value) {
+      updateMapMoving(false);
+      return;
+    }
+    updateMapMoving(true);
+    movingTimer.current = setTimeout(() => updateMapMoving(false), 900);
+  }, []);
+  useEffect(() => () => {
+    if (movingTimer.current) clearTimeout(movingTimer.current);
+  }, []);
   const moving = !selection || pointKey !== selection.key;
   const query = useQuery({
     queryKey: ['map-picker-address', selection?.key],

@@ -1,33 +1,90 @@
-import { localizedAlert , useLanguage , useThemedStyles , useThemeColors , Card,fontSize,ProfileScreenSUPPORT_SECTION,ProfileScreenTONE_STYLES } from '@datxe/ui';
-import { translate as i18nT , signOutFirebase } from '@datxe/shared';
-import { useTranslation } from '@/lib/settings/i18n';
-import { CustomerTabBar } from '@/components/CustomerTabBar';
-import { HEADER_SAFETY_ACTION_WIDTH,HeaderLabeledIconButton,ScreenHeader } from '@/components/ScreenHeader';
-import { getCustomerDisplayName,getCustomerInitials } from '@/lib/customerName';
-import type { ProfileScreenMenuItem } from '@datxe/ui';
-import { MaterialIcons } from '@expo/vector-icons';
-import { ActivityIndicator,Image,Modal,Pressable,ScrollView,Text,View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { getApiErrorMessage,makeStyles } from '../components/ProfileScreenParts';
-import { useProfile } from '../hooks/useProfile';
-export default function ProfileScreen() {
- useLanguage();
+import { CustomerTabBar } from "@/components/CustomerTabBar";
+import {
+  HEADER_SAFETY_ACTION_WIDTH,
+  HeaderLabeledIconButton,
+  ScreenHeader,
+} from "@/components/ScreenHeader";
+import {
+  getCustomerDisplayName,
+  getCustomerInitials,
+} from "@/lib/customerName";
+import { useTranslation } from "@/lib/settings/i18n";
+import { translate as i18nT, signOutFirebase } from "@datxe/shared";
+import type { ProfileScreenMenuItem } from "@datxe/ui";
+import {
+  Card,
+  fontSize,
+  localizedAlert,
+  MotionPressable as Pressable,
+  ProfileScreenSUPPORT_SECTION,
+  ProfileScreenTONE_STYLES,
+  ScreenWrapper as SafeAreaView,
+  Typography as Text,
+  useLanguage,
+  useThemeColors,
+  useThemedStyles,
+} from "@datxe/ui";
+import { MaterialIcons } from "@expo/vector-icons";
+import { Fragment } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  Modal,
+  ScrollView,
+  View,
+} from "react-native";
 
-const colors=useThemeColors();const styles=useThemedStyles(makeStyles(colors));const t=useTranslation();
-const { router, profile, unreadCount, loading, loadError, refresh, logoutVisible, setLogoutVisible, deleteVisible, setDeleteVisible, deletingAccount, deleteError, setDeleteError, uploadingAvatar, openEdit, changeAvatar, confirmDeleteAccount, profileStats, serviceItems } = useProfile();
-const renderMenuItem = (item: ProfileScreenMenuItem) => {
+import {
+  getApiErrorMessage,
+  makeStyles,
+} from "../components/ProfileScreenParts";
+import { useProfile } from "../hooks/useProfile";
+export default function ProfileScreen() {
+  useLanguage();
+
+  const colors = useThemeColors();
+  const styles = useThemedStyles(makeStyles);
+  const t = useTranslation();
+  const {
+    router,
+    profile,
+    unreadCount,
+    loading,
+    loadError,
+    refresh,
+    logoutVisible,
+    setLogoutVisible,
+    deleteVisible,
+    setDeleteVisible,
+    deletingAccount,
+    deleteError,
+    setDeleteError,
+    uploadingAvatar,
+    openEdit,
+    changeAvatar,
+    confirmDeleteAccount,
+    profileStats,
+    serviceItems,
+  } = useProfile();
+  const renderMenuItem = (item: ProfileScreenMenuItem) => {
     const tone = ProfileScreenTONE_STYLES[item.tone];
     return (
-      <Card
+      <Pressable
         key={item.id}
+        accessibilityRole="button"
         accessibilityLabel={i18nT(t(item.title))}
         onPress={() => {
           if (item.route) router.push(item.route as never);
-          else if (item.id === 'payments') router.push('/payment-methods');
-          else if (item.id === 'help') router.push({ pathname: '/support', params: { topic: 'help' } });
-          else if (item.id === 'safety') router.push({ pathname: '/support', params: { topic: 'safety' } });
+          else if (item.id === "payments") router.push("/payment-methods");
+          else if (item.id === "help")
+            router.push({ pathname: "/support", params: { topic: "help" } });
+          else if (item.id === "safety")
+            router.push({ pathname: "/support", params: { topic: "safety" } });
         }}
-        style={styles.menuRow}
+        style={({ pressed }) => [
+          styles.menuRow,
+          pressed && styles.menuRowPressed,
+        ]}
       >
         <View style={styles.menuLeft}>
           <View
@@ -38,7 +95,7 @@ const renderMenuItem = (item: ProfileScreenMenuItem) => {
           >
             <MaterialIcons
               name={item.icon}
-              size={fontSize.icon2xl}
+              size={fontSize.iconLg}
               color={colors[tone.icon as keyof typeof colors]}
             />
           </View>
@@ -75,21 +132,35 @@ const renderMenuItem = (item: ProfileScreenMenuItem) => {
             color={colors.outline}
           />
         </View>
-      </Card>
+      </Pressable>
     );
   };
-return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+  const renderMenuGroup = (items: readonly ProfileScreenMenuItem[]) => (
+    <Card style={styles.menuGroup}>
+      {items.map((item, index) => (
+        <Fragment key={item.id}>
+          {index > 0 ? <View style={styles.rowDivider} /> : null}
+          {renderMenuItem(item)}
+        </Fragment>
+      ))}
+    </Card>
+  );
+  return (
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <ScreenHeader
-        title={i18nT(t('Hồ sơ'))}
+        title={i18nT(t("Hồ sơ"))}
         largeTitle
         sideSlotWidth={HEADER_SAFETY_ACTION_WIDTH}
-        rightContent={<HeaderLabeledIconButton
-          icon="shield"
-          accessibilityLabel={i18nT("An toàn chuyến đi")}
-          label={i18nT("An toàn")}
-          onPress={() => router.push({ pathname: '/support', params: { topic: 'safety' } })}
-        />}
+        rightContent={
+          <HeaderLabeledIconButton
+            icon="shield"
+            accessibilityLabel={i18nT("An toàn chuyến đi")}
+            label={i18nT("An toàn")}
+            onPress={() =>
+              router.push({ pathname: "/support", params: { topic: "safety" } })
+            }
+          />
+        }
       />
 
       <ScrollView
@@ -97,33 +168,71 @@ return (
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {loading && !profile ? <ActivityIndicator color={colors.primary} /> : null}
+        {loading && !profile ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : null}
         {loadError ? (
           <Pressable onPress={() => void refresh()} style={styles.loadErrorBox}>
-            <Text accessibilityRole="alert" style={styles.loadErrorText}>{i18nT(loadError)}</Text>
+            <Text accessibilityRole="alert" style={styles.loadErrorText}>
+              {i18nT(loadError)}
+            </Text>
             <Text style={styles.retryText}>{i18nT("Chạm để thử lại")}</Text>
           </Pressable>
         ) : null}
 
         <Card style={styles.identityCard}>
           <View style={styles.identityRow}>
-            <Pressable accessibilityLabel={i18nT("Thay đổi ảnh đại diện")} disabled={uploadingAvatar || !profile} onPress={() => void changeAvatar()} style={styles.avatarWrap}>
+            <Pressable
+              accessibilityLabel={i18nT("Thay đổi ảnh đại diện")}
+              disabled={uploadingAvatar || !profile}
+              onPress={() => void changeAvatar()}
+              style={styles.avatarWrap}
+            >
               {profile?.avatar_url ? (
-                <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+                <Image
+                  source={{ uri: profile.avatar_url }}
+                  style={styles.avatar}
+                />
               ) : (
                 <View style={[styles.avatar, styles.avatarFallback]}>
-                  <Text style={styles.avatarInitials}>{getCustomerInitials(profile?.full_name)}</Text>
+                  <Text style={styles.avatarInitials}>
+                    {getCustomerInitials(profile?.full_name)}
+                  </Text>
                 </View>
               )}
-              <View style={styles.avatarEditBadge}>{uploadingAvatar ? <ActivityIndicator size="small" color={colors.onPrimary} /> : <MaterialIcons name="photo-camera" size={fontSize.iconSm} color={colors.onPrimary} />}</View>
+              <View style={styles.avatarEditBadge}>
+                {uploadingAvatar ? (
+                  <ActivityIndicator size="small" color={colors.onPrimary} />
+                ) : (
+                  <MaterialIcons
+                    name="photo-camera"
+                    size={fontSize.iconSm}
+                    color={colors.onPrimary}
+                  />
+                )}
+              </View>
             </Pressable>
             <View style={styles.identityCopy}>
               <Text style={styles.userName} numberOfLines={2}>
-                {getCustomerDisplayName(profile?.full_name) || i18nT('Khách hàng')}
+                {getCustomerDisplayName(profile?.full_name) ||
+                  i18nT("Khách hàng")}
               </Text>
-              {profile?.phone_number ? <Text style={styles.userPhone}>{profile.phone_number}</Text> : <Pressable accessibilityRole="button" onPress={() => router.push('/(auth)/add-phone-number' as never)}><Text style={styles.phoneLink}>{i18nT("Thêm số điện thoại")}</Text></Pressable>}
+              {profile?.phone_number ? (
+                <Text style={styles.userPhone}>{profile.phone_number}</Text>
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() =>
+                    router.push("/(auth)/add-phone-number" as never)
+                  }
+                >
+                  <Text style={styles.phoneLink}>
+                    {i18nT("Thêm số điện thoại")}
+                  </Text>
+                </Pressable>
+              )}
               <Text style={styles.userEmail} numberOfLines={1}>
-                {i18nT(profile?.email || 'Chưa cập nhật email')}
+                {i18nT(profile?.email || "Chưa cập nhật email")}
               </Text>
             </View>
             <Pressable
@@ -146,8 +255,8 @@ return (
                 <Text
                   style={[
                     styles.statValue,
-                    stat.tone === 'primary' && styles.statValuePrimary,
-                    stat.tone === 'tertiary' && styles.statValueTertiary,
+                    stat.tone === "primary" && styles.statValuePrimary,
+                    stat.tone === "tertiary" && styles.statValueTertiary,
                   ]}
                 >
                   {i18nT(stat.value)}
@@ -159,43 +268,81 @@ return (
         </Card>
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>{i18nT("Dịch vụ &amp; Xe")}</Text>
-          {serviceItems.map(renderMenuItem)}
+          <Text style={styles.sectionLabel}>{i18nT("Dịch vụ & Xe")}</Text>
+          {renderMenuGroup(serviceItems)}
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>{i18nT("Hỗ trợ &amp; An toàn")}</Text>
-          {ProfileScreenSUPPORT_SECTION.map(renderMenuItem)}
+          <Text style={styles.sectionLabel}>
+            {i18nT("Hỗ trợ & An toàn")}
+          </Text>
+          {renderMenuGroup(ProfileScreenSUPPORT_SECTION)}
         </View>
 
-        <View style={styles.section}><Text style={styles.sectionLabel}>{i18nT("CÀI ĐẶT")}</Text>{renderMenuItem({id:'settings',title:'Cài đặt',subtitle:'Giao diện, quyền và tùy chọn ứng dụng',icon:'settings',tone:'primary',route:'/settings'})}</View>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>{i18nT("CÀI ĐẶT")}</Text>
+          <Card style={styles.menuGroup}>
+            {renderMenuItem({
+              id: "settings",
+              title: "Cài đặt",
+              subtitle: "Giao diện, quyền và tùy chọn ứng dụng",
+              icon: "settings",
+              tone: "primary",
+              route: "/settings",
+            })}
+            <View style={styles.rowDivider} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={i18nT("Đăng xuất")}
+              onPress={() => setLogoutVisible(true)}
+              style={styles.logoutRow}
+            >
+              <MaterialIcons
+                name="logout"
+                size={fontSize.iconLg}
+                color={colors.primary}
+              />
+              <Text style={styles.logoutRowText}>{i18nT("Đăng xuất")}</Text>
+            </Pressable>
+            <View style={styles.rowDivider} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={i18nT("Xóa tài khoản")}
+              onPress={() => {
+                setDeleteError("");
+                setDeleteVisible(true);
+              }}
+              style={styles.logoutRow}
+            >
+              <MaterialIcons
+                name="delete-outline"
+                size={fontSize.iconLg}
+                color={colors.primary}
+              />
+              <Text style={styles.logoutRowText}>
+                {i18nT("Xóa tài khoản")}
+              </Text>
+            </Pressable>
+          </Card>
+        </View>
         <View style={styles.footer}>
-          <Pressable
-            accessibilityLabel={i18nT("Đăng xuất")}
-            onPress={() => setLogoutVisible(true)}
-            style={styles.logoutButton}
-          >
-            <MaterialIcons
-              name="logout"
-              size={fontSize.iconXl}
-              color={colors.onSurfaceVariant}
-            />
-            <Text style={styles.logoutText}>{i18nT("Đăng xuất")}</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => { setDeleteError(''); setDeleteVisible(true); }}
-            style={({ pressed }) => [styles.deleteAccountButton, pressed && styles.buttonPressed]}
-          >
-            <Text style={styles.deleteAccountText}>{i18nT("Xóa tài khoản")}</Text>
-          </Pressable>
           <View style={styles.legalLinks}>
-            <Pressable accessibilityRole="link" onPress={() => router.push('/terms-of-service' as never)}>
-              <Text style={styles.legalLinkText}>{i18nT("Điều khoản dịch vụ")}</Text>
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => router.push("/terms-of-service" as never)}
+            >
+              <Text style={styles.legalLinkText}>
+                {i18nT("Điều khoản dịch vụ")}
+              </Text>
             </Pressable>
             <Text style={styles.legalSeparator}>·</Text>
-            <Pressable accessibilityRole="link" onPress={() => router.push('/privacy-policy' as never)}>
-              <Text style={styles.legalLinkText}>{i18nT("Chính sách bảo mật")}</Text>
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => router.push("/privacy-policy" as never)}
+            >
+              <Text style={styles.legalLinkText}>
+                {i18nT("Chính sách bảo mật")}
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -205,23 +352,61 @@ return (
 
       <Modal
         animationType="fade"
-        onRequestClose={() => { if (!deletingAccount) setDeleteVisible(false); }}
+        onRequestClose={() => {
+          if (!deletingAccount) setDeleteVisible(false);
+        }}
         transparent
         visible={deleteVisible}
       >
         <View style={styles.dialogOverlay}>
           <View style={styles.deleteDialogCard}>
-            <View style={styles.dialogIcon}><MaterialIcons name="delete-outline" size={fontSize.icon2xl} color={colors.error} /></View>
+            <View style={styles.dialogIcon}>
+              <MaterialIcons
+                name="delete-outline"
+                size={fontSize.icon2xl}
+                color={colors.error}
+              />
+            </View>
             <Text style={styles.dialogTitle}>{i18nT("Xóa tài khoản?")}</Text>
-            <Text style={styles.deleteDialogText}>{i18nT("Hồ sơ sẽ được ẩn danh; số điện thoại, ảnh đại diện và ảnh xe sẽ được xóa. Lịch sử chuyến vẫn được giữ lại. Bạn không thể hoàn tác thao tác này.")}</Text>
-            <Text style={styles.deleteDialogText}>{i18nT("Không thể xóa khi bạn còn chuyến chưa kết thúc.")}</Text>
-            {deleteError ? <Text accessibilityRole="alert" style={styles.errorText}>{i18nT(deleteError)}</Text> : null}
+            <Text style={styles.deleteDialogText}>
+              {i18nT(
+                "Hồ sơ sẽ được ẩn danh; số điện thoại, ảnh đại diện và ảnh xe sẽ được xóa. Lịch sử chuyến vẫn được giữ lại. Bạn không thể hoàn tác thao tác này.",
+              )}
+            </Text>
+            <Text style={styles.deleteDialogText}>
+              {i18nT("Không thể xóa khi bạn còn chuyến chưa kết thúc.")}
+            </Text>
+            {deleteError ? (
+              <Text accessibilityRole="alert" style={styles.errorText}>
+                {i18nT(deleteError)}
+              </Text>
+            ) : null}
             <View style={styles.dialogActions}>
-              <Pressable disabled={deletingAccount} onPress={() => setDeleteVisible(false)} style={[styles.dialogButton, styles.dialogButtonGhost]}>
-                <Text style={styles.dialogButtonGhostText}>{i18nT("Giữ tài khoản")}</Text>
+              <Pressable
+                disabled={deletingAccount}
+                onPress={() => setDeleteVisible(false)}
+                style={[styles.dialogButton, styles.dialogButtonGhost]}
+              >
+                <Text style={styles.dialogButtonGhostText}>
+                  {i18nT("Giữ tài khoản")}
+                </Text>
               </Pressable>
-              <Pressable disabled={deletingAccount} onPress={() => void confirmDeleteAccount()} style={[styles.dialogButton, styles.deleteConfirmButton, deletingAccount && styles.buttonDisabled]}>
-                {deletingAccount ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.dialogButtonPrimaryText}>{i18nT("Xóa tài khoản")}</Text>}
+              <Pressable
+                disabled={deletingAccount}
+                onPress={() => void confirmDeleteAccount()}
+                style={[
+                  styles.dialogButton,
+                  styles.deleteConfirmButton,
+                  deletingAccount && styles.buttonDisabled,
+                ]}
+              >
+                {deletingAccount ? (
+                  <ActivityIndicator color={colors.onPrimary} />
+                ) : (
+                  <Text style={styles.dialogButtonPrimaryText}>
+                    {i18nT("Xóa tài khoản")}
+                  </Text>
+                )}
               </Pressable>
             </View>
           </View>
@@ -248,29 +433,42 @@ return (
             </View>
             <View style={styles.dialogCopy}>
               <Text style={styles.dialogTitle}>
-                {i18nT("Bạn có chắc muốn đăng xuất?")}</Text>
+                {i18nT("Bạn có chắc muốn đăng xuất?")}
+              </Text>
               <Text style={styles.dialogMeta}>
-                {i18nT("Thông tin chuyến đi và voucher đang lưu sẽ vẫn an toàn khi bạn đăng nhập lại.")}</Text>
+                {i18nT(
+                  "Thông tin chuyến đi và voucher đang lưu sẽ vẫn an toàn khi bạn đăng nhập lại.",
+                )}
+              </Text>
             </View>
             <View style={styles.dialogActions}>
               <Pressable
                 onPress={() => setLogoutVisible(false)}
                 style={[styles.dialogButton, styles.dialogButtonGhost]}
               >
-                <Text style={styles.dialogButtonGhostText}>{i18nT("Ở lại")}</Text>
+                <Text style={styles.dialogButtonGhostText}>
+                  {i18nT("Ở lại")}
+                </Text>
               </Pressable>
               <Pressable
                 onPress={() => {
                   void signOutFirebase()
                     .then(() => {
                       setLogoutVisible(false);
-                      router.replace('/(auth)/login' as never);
+                      router.replace("/(auth)/login" as never);
                     })
-                    .catch((error: unknown) => localizedAlert(i18nT("Không thể đăng xuất"), getApiErrorMessage(error)));
+                    .catch((error: unknown) =>
+                      localizedAlert(
+                        i18nT("Không thể đăng xuất"),
+                        getApiErrorMessage(error),
+                      ),
+                    );
                 }}
                 style={[styles.dialogButton, styles.dialogButtonDanger]}
               >
-                <Text style={styles.dialogButtonDangerText}>{i18nT("Đăng xuất")}</Text>
+                <Text style={styles.dialogButtonDangerText}>
+                  {i18nT("Đăng xuất")}
+                </Text>
               </Pressable>
             </View>
           </Pressable>

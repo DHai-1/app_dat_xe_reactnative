@@ -1,6 +1,6 @@
 import { translate as i18nT } from '@datxe/shared';
 import { useSettings } from '@/lib/settings/SettingsProvider';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard } from 'react-native';
@@ -19,16 +19,28 @@ export function usePlaceSelection(kind: PlaceKind) {
   const draft = useBookingDraft();
   const [text, setText] = useState(kind === 'dropoff' ? draft.destinationHint : '');
   const queryText = text.trim();
-  const debounced = useDebouncedValue(queryText);
+  // Chuẩn hoá trước khi đưa vào queryKey để gõ thừa dấu cách / hoa thường không tạo thêm request.
+  const normalizedText = queryText.replace(/\s+/g, ' ').toLowerCase();
+  const debounced = useDebouncedValue(normalizedText, 400);
   const proximity = useSearchProximity(draft.pickup?.coordinate);
   const [selectingId, setSelectingId] = useState<string | null>(null);
   const [selectionError, setSelectionError] = useState('');
   const selecting = useRef(false);
   const selectionRequest = useRef<AbortController | null>(null);
   useEffect(() => () => { selectionRequest.current?.abort(); }, []);
-  const searching = queryText.length >= 2 && queryText !== debounced;
-  const canSearch = queryText.length >= 2 && !searching;
-  const search = useQuery({ queryKey: ['customer', 'placeSearchV2', debounced, proximity?.lat, proximity?.lng], queryFn: ({ signal }) => searchBookingPlaces(debounced, proximity, signal), enabled: canSearch, retry: false, staleTime: 60000 });
+  const searching = normalizedText.length >= 2 && normalizedText !== debounced;
+  const canSearch = normalizedText.length >= 2 && !searching;
+  const search = useQuery({
+    queryKey: ['customer', 'placeSearchV3', debounced, proximity?.lat, proximity?.lng],
+    queryFn: ({ signal }) => searchBookingPlaces(debounced, proximity, signal),
+    enabled: canSearch,
+    retry: false,
+    // Giữ kết quả cũ khi gõ tiếp (danh sách không nhấp nháy) và cache 5 phút để
+    // gõ đi gõ lại cùng một địa chỉ không gọi lại API.
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+  });
   const recent = useQuery({ queryKey: ['customer', 'bookingRecentPlaces'], queryFn: () => getCustomerRides(0, 10), staleTime: 60000 });
   const recentAddresses = [...new Set(recent.data?.content.flatMap(ride => (kind === 'pickup' ? ride.pickupAddress : ride.dropoffAddress) || []).filter(Boolean) ?? [])].slice(0, 4);
   const device = useDeviceLocation();

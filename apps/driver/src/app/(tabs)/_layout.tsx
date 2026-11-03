@@ -1,1 +1,1 @@
-export { default } from '@/components/TabStackLayout';
+export { default } from "@/components/TabStackLayout";

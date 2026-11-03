@@ -1,1 +1,1 @@
-export { default } from '@/features/tracking/screens/DriverTrackingScreen';
+export { default } from "@/features/tracking/screens/DriverTrackingScreen";

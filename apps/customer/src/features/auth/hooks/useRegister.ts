@@ -41,7 +41,12 @@ const submit = async () => {
       try {
         await registerWithBackend('customer', fullName, user ?? undefined);
       } catch (cause) {
-        if (cause instanceof AuthApiError && cause.code === 'ACCOUNT_ALREADY_EXISTS') {
+        // The phone can already own a profile even when this Firebase identity is new (for
+        // example after the Firebase account was recreated). Signing in re-attaches it.
+        if (
+          cause instanceof AuthApiError &&
+          (cause.code === 'ACCOUNT_ALREADY_EXISTS' || cause.code === 'PHONE_ALREADY_EXISTS')
+        ) {
           await authenticateWithBackend('customer', user ?? undefined);
         } else {
           throw cause;

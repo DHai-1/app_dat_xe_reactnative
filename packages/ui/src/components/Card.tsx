@@ -1,21 +1,15 @@
-import { translate as i18nT } from '@datxe/shared';
-import { useLanguage } from "../useLanguage";
+import { translate as i18nT } from "@datxe/shared";
+import { LinearGradient } from "expo-linear-gradient";
+import type { ReactNode } from "react";
+import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import type { ThemeColors } from "../theme/ThemeProvider";
 import { useThemedStyles } from "../theme/ThemeProvider";
-import { useThemeColors, useTheme } from '../theme/ThemeProvider';
-import { MotionPressable } from './MotionPressable';
-import { LinearGradient } from 'expo-linear-gradient';
-import type { ReactNode } from 'react';
-import {
+import { useLanguage } from "../useLanguage";
+import { MotionPressable } from "./MotionPressable";
 
-StyleSheet,
-View,
-type StyleProp,
-type ViewStyle,
-} from 'react-native';
+import { borderRadius, shadowStyle, spacing } from "../theme/colors";
 
-import { borderRadius,colors,spacing } from '../theme/colors';
-
-export type CardVariant = 'surface' | 'raised' | 'muted';
+export type CardVariant = "surface" | "raised" | "muted";
 
 export type CardProps = {
   children: ReactNode;
@@ -36,7 +30,7 @@ export type CardProps = {
 
 export function Card({
   children,
-  variant = 'surface',
+  variant = "surface",
   gradient,
   gradientStart,
   gradientEnd,
@@ -44,22 +38,19 @@ export function Card({
   accessibilityLabel,
   style,
 }: CardProps) {
- useLanguage();
+  useLanguage();
 
- const colors=useThemeColors();
+  const styles = useThemedStyles(base_styles);
 
- const styles=useThemedStyles(base_styles);
-
-  const themeColors=useThemeColors();const {dark}=useTheme();
   const containerStyle = [
     styles.base,
-    variant === 'surface' && styles.surface,
-    variant === 'raised' && styles.raised,
-    variant === 'muted' && styles.muted,
+    variant === "surface" && styles.surface,
+    variant === "raised" && styles.raised,
+    variant === "muted" && styles.muted,
     style,
   ];
 
-  const content = gradient && !dark ? (
+  const content = gradient ? (
     <LinearGradient
       colors={gradient}
       end={gradientEnd}
@@ -87,28 +78,27 @@ export function Card({
   );
 }
 
-const base_styles = StyleSheet.create({
-  base: {
-    borderRadius: borderRadius.xl,
-    padding: spacing.spaceMd,
-  },
-  surface: {
-    backgroundColor: colors.surfaceContainerLowest,
-    shadowColor: colors.onSurface,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  raised: {
-    backgroundColor: colors.surfaceContainerLowest,
-    shadowColor: colors.cardShadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  muted: {
-    backgroundColor: colors.surfaceContainerLow,
-  },
-});
+const base_styles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    base: {
+      borderRadius: borderRadius.xxl,
+      padding: spacing.spaceLg,
+      borderWidth: 1,
+      borderColor: colors.transparent,
+    },
+    surface: {
+      backgroundColor: colors.cardSurface,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      ...shadowStyle,
+    },
+    raised: {
+      backgroundColor: colors.cardSurface,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      ...shadowStyle,
+    },
+    muted: {
+      backgroundColor: colors.surfaceContainer,
+    },
+  });

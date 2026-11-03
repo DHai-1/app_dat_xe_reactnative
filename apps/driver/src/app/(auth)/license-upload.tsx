@@ -1,1 +1,1 @@
-export { default } from '@/features/auth/screens/LicenseUploadScreen';
+export { default } from "@/features/auth/screens/LicenseUploadScreen";

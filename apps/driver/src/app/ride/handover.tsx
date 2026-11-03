@@ -1,1 +1,1 @@
-export { default } from '@/features/ride/screens/VehicleInspectionScreen';
+export { default } from "@/features/ride/screens/VehicleInspectionScreen";

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "DriveMate",
+    "name": "PtitGo",
     "slug": "drivemate-customer",
     "scheme": "drivemate",
     "version": "1.0.0",
@@ -11,7 +11,12 @@
       "bundleIdentifier": "com.datxe.customer"
     },
     "android": {
-      "package": "com.datxe.customer"
+      "package": "com.datxe.customer",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundColor": "#FFFFFF",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      }
     },
     "web": {
       "output": "single",
@@ -22,21 +27,21 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#FF4757",
+          "image": "./assets/images/brand-logo.png",
+          "imageWidth": 160
         }
       ],
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Cho phép DriveMate dùng camera để chụp hiện trạng xe."
+          "cameraPermission": "Cho phép PtitGo dùng camera để chụp hiện trạng xe."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Cho phép DriveMate dùng vị trí để chọn điểm đón và theo dõi chuyến đi."
+          "locationWhenInUsePermission": "Cho phép PtitGo dùng vị trí để chọn điểm đón và theo dõi chuyến đi."
         }
       ]
     ],

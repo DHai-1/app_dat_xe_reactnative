@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "DriveMate Tài Xế",
+    "name": "PtitGo Tài Xế",
     "slug": "drivemate-driver",
     "scheme": "drivemate-driver",
     "version": "1.0.0",
@@ -30,15 +30,15 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Cho phép DriveMate Tài Xế dùng camera để chụp xe và giấy tờ.",
-          "photosPermission": "Cho phép DriveMate Tài Xế chọn ảnh giấy phép lái xe từ thư viện."
+          "cameraPermission": "Cho phép PtitGo Tài Xế dùng camera để chụp xe và giấy tờ.",
+          "photosPermission": "Cho phép PtitGo Tài Xế chọn ảnh giấy phép lái xe từ thư viện."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Cho phép DriveMate Tài Xế dùng vị trí để nhận cuốc gần bạn.",
-          "locationAlwaysAndWhenInUsePermission": "Cho phép DriveMate Tài Xế theo dõi vị trí trong suốt chuyến đi.",
+          "locationWhenInUsePermission": "Cho phép PtitGo Tài Xế dùng vị trí để nhận cuốc gần bạn.",
+          "locationAlwaysAndWhenInUsePermission": "Cho phép PtitGo Tài Xế theo dõi vị trí trong suốt chuyến đi.",
           "isAndroidBackgroundLocationEnabled": true
         }
       ]

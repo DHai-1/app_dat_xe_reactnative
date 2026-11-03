@@ -1,1 +1,1 @@
-export { default } from '@/components/StackLayout';
+export { default } from "@/components/StackLayout";
