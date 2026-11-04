@@ -32,6 +32,7 @@ export function BookingMap({
   driver,
   route,
   interactive = true,
+  editablePin = false,
   onCenterChange,
   onReadyChange,
   onMovingChange,
@@ -90,11 +91,11 @@ export function BookingMap({
     // Một số bản Mapbox không bắn onMapIdle sau animation lập trình: fallback để
     // màn ghim không bị kẹt ở trạng thái "đang xác định địa chỉ".
     const timer = setTimeout(() => {
-      centerCallback.current?.({ lat: center.lat, lng: center.lng });
+      if (!editablePin) centerCallback.current?.({ lat: center.lat, lng: center.lng });
       movingCallback.current?.(false);
     }, 600);
     return () => clearTimeout(timer);
-  }, [center.lat, center.lng, dropoff, status]);
+  }, [center.lat, center.lng, dropoff, editablePin, status]);
   const markers = useMemo(
     () => ({
       type: "FeatureCollection" as const,
@@ -175,15 +176,20 @@ export function BookingMap({
       onCameraChanged={() => onMovingChange?.(true)}
       onMapIdle={(event) => {
         const [lng, lat] = event.properties.center;
-        onCenterChange?.({ lat, lng });
+        if (!editablePin) onCenterChange?.({ lat, lng });
         onMovingChange?.(false);
       }}
       onPress={(event) => {
-        if (interactive && !onCenterChange && event.geometry.type === "Point")
+        if (!interactive || event.geometry.type !== "Point") return;
+        if (editablePin) {
+          const [lng, lat] = event.geometry.coordinates;
+          onCenterChange?.({ lat, lng });
+        } else if (!onCenterChange) {
           camera.current?.setCamera({
             centerCoordinate: event.geometry.coordinates,
             animationDuration: 300,
           });
+        }
       }}
       onMapLoadingError={() => {
         setStatus("unavailable");

@@ -70,17 +70,21 @@ export function BookingMap({
             { padding: 45, maxZoom: 16, duration: 0 },
           );
         const point = instance.getCenter();
-        callbacks.current.onCenterChange?.({ lat: point.lat, lng: point.lng });
+        if (!state.editablePin) callbacks.current.onCenterChange?.({ lat: point.lat, lng: point.lng });
       });
       instance.on("movestart", () => callbacks.current.onMovingChange?.(true));
       instance.on("moveend", () => {
         const point = instance.getCenter();
-        callbacks.current.onCenterChange?.({ lat: point.lat, lng: point.lng });
+        if (!state.editablePin) callbacks.current.onCenterChange?.({ lat: point.lat, lng: point.lng });
         callbacks.current.onMovingChange?.(false);
       });
       instance.on("click", (event) => {
-        if (state.interactive && !state.editablePin)
+        if (!state.interactive) return;
+        if (state.editablePin) {
+          callbacks.current.onCenterChange?.({ lat: event.lngLat.lat, lng: event.lngLat.lng });
+        } else {
           instance.easeTo({ center: event.lngLat, duration: 300 });
+        }
       });
       instance.on("error", () => {
         setFailed(true);

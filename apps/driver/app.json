@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "PtitGo Tài Xế",
+    "name": "PtitGo Tài xế",
     "slug": "drivemate-driver",
     "scheme": "drivemate-driver",
     "version": "1.0.0",
@@ -14,7 +14,12 @@
       "package": "com.datxe.driver",
       "permissions": [
         "android.permission.POST_NOTIFICATIONS"
-      ]
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundColor": "#FFFFFF",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      }
     },
     "web": {
       "output": "single",
@@ -25,23 +30,23 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0F172A",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#FF4757",
+          "image": "./assets/images/brand-logo.png",
+          "imageWidth": 160
         }
       ],
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Cho phép PtitGo Tài Xế dùng camera để chụp xe và giấy tờ.",
-          "photosPermission": "Cho phép PtitGo Tài Xế chọn ảnh giấy phép lái xe từ thư viện."
+          "cameraPermission": "Cho phép DriveMate Tài Xế dùng camera để chụp xe và giấy tờ.",
+          "photosPermission": "Cho phép DriveMate Tài Xế chọn ảnh giấy phép lái xe từ thư viện."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Cho phép PtitGo Tài Xế dùng vị trí để nhận cuốc gần bạn.",
-          "locationAlwaysAndWhenInUsePermission": "Cho phép PtitGo Tài Xế theo dõi vị trí trong suốt chuyến đi.",
+          "locationWhenInUsePermission": "Cho phép DriveMate Tài Xế dùng vị trí để nhận cuốc gần bạn.",
+          "locationAlwaysAndWhenInUsePermission": "Cho phép DriveMate Tài Xế theo dõi vị trí trong suốt chuyến đi.",
           "isAndroidBackgroundLocationEnabled": true
         }
       ]

@@ -17,7 +17,8 @@ export default function RootLayout() {
   if (!loaded && !error) return null;
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider brand="driver" mode="system">
+      <ThemeProvider brand="customer" mode="system">
+        {/* GitHub addition: register push notifications while preserving the branded driver theme. */}
         <PushBridge />
         <DriverRealtimeBridge />
         <DriverStack />

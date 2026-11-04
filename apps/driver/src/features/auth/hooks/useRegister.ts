@@ -2,6 +2,7 @@ import { AuthApiError,authenticateWithBackend,confirmPhoneCode,getAuthFullNameVa
 import { useLocalSearchParams,useRouter } from 'expo-router';
 import { useEffect,useState } from 'react';
 import { getErrorMessage } from '../components/RegisterScreenParts';
+import { configureDriverPhoneAuthForDev } from '../../../lib/phoneAuth';
 export function useRegister() {
 const router = useRouter();
 const user = getFirebaseUser();
@@ -24,13 +25,14 @@ const sendCode = async () => {
     setLoading(true);
     setError('');
     try {
+      configureDriverPhoneAuthForDev();
       const result = await sendPhoneCode(phone, { linkToCurrentAccount: true });
       if (result.autoVerified) {
         const linkedUser = getFirebaseUser();
         setVerifiedPhone(linkedUser?.phoneNumber ?? normalizeVietnamPhoneNumber(phone));
         setCodeSent(false);
       } else {
-        setCodeSent(true);
+        router.push({ pathname: '/(auth)/register-otp', params: { phone: normalizeVietnamPhoneNumber(phone) } } as never);
       }
     } catch (cause) {
       setError(getErrorMessage(cause));
@@ -68,12 +70,7 @@ const submit = async () => {
       try {
         await registerWithBackend('driver', fullName, currentUser);
       } catch (cause) {
-        // The phone can already own a driver profile even when this Firebase identity is new
-        // (for example after the Firebase account was recreated). Signing in re-attaches it.
-        if (
-          cause instanceof AuthApiError &&
-          (cause.code === 'ACCOUNT_ALREADY_EXISTS' || cause.code === 'PHONE_ALREADY_EXISTS')
-        ) {
+        if (cause instanceof AuthApiError && cause.code === 'ACCOUNT_ALREADY_EXISTS') {
           await authenticateWithBackend('driver', currentUser);
         } else {
           throw cause;

@@ -2,6 +2,7 @@ import { AuthApiError,AuthCancelledError,authenticateWithBackend,isValidVietnamP
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { SignInMethod,getErrorMessage,isAccountNotFound } from '../components/LoginScreenParts';
+import { configureDriverPhoneAuthForDev } from '../../../lib/phoneAuth';
 export function useLogin() {
 const router = useRouter();
 const [phone, setPhone] = useState('');
@@ -16,10 +17,16 @@ const continueWithPhone = async () => {
     setError('');
     try {
       const normalizedPhone = normalizeVietnamPhoneNumber(phone);
-      await sendPhoneCode(normalizedPhone);
+      configureDriverPhoneAuthForDev();
+      await Promise.race([
+        sendPhoneCode(normalizedPhone),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('FIREBASE_PHONE_AUTH_TIMEOUT')), 30000)),
+      ]);
       router.push({ pathname: '/(auth)/otp-verify', params: { phone: normalizedPhone } } as never);
     } catch (cause) {
-      setError(getErrorMessage(cause));
+      setError(cause instanceof Error && cause.message === 'FIREBASE_PHONE_AUTH_TIMEOUT'
+        ? 'Xác minh Firebase đang bị treo. Hãy kiểm tra SHA Firebase hoặc thử lại.'
+        : getErrorMessage(cause));
     } finally {
       setBusy(null);
     }

@@ -1,6 +1,7 @@
 import { request } from './api';
 import type { CustomerRideDetail,CustomerRidePage,CustomerNotification,DriverProfile,DriverVerification,DriverDocument,DriverSkill,DriverWallet } from '@datxe/shared';
 export const driverApi={
+ deleteAccount:()=>request('/auth/account',{method:'DELETE'}),
  profile:()=>request<DriverProfile>('/driver/profile'),
  verification:()=>request<DriverVerification>('/driver/verification'),
  documents:()=>request<DriverDocument[]>('/driver/documents'),

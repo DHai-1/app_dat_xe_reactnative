@@ -46,6 +46,19 @@ const SIGN_OUT_TIMEOUT_MS = 3_000;
 let installationIdPromise: Promise<string> | null = null;
 let signOutCleanup: (() => Promise<void>) | null = null;
 
+/**
+ * Expo Go không chứa native module của React Native Firebase Messaging.
+ * Giữ phần push là tuỳ chọn để app vẫn chạy được trong Expo Go; FCM sẽ được
+ * bật đầy đủ khi chạy development build/release build có native Firebase.
+ */
+function getMessagingSafely() {
+  try {
+    return getMessaging();
+  } catch {
+    return null;
+  }
+}
+
 export function isPushSupported(): boolean {
   return Platform.OS === 'android' || Platform.OS === 'ios';
 }
@@ -103,7 +116,9 @@ export async function requestPushPermission(): Promise<boolean> {
       const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
       return result === PermissionsAndroid.RESULTS.GRANTED;
     }
-    const status = await requestPermission(getMessaging());
+    const messaging = getMessagingSafely();
+    if (!messaging) return false;
+    const status = await requestPermission(messaging);
     return status === AuthorizationStatus.AUTHORIZED || status === AuthorizationStatus.PROVISIONAL;
   } catch {
     return false;
@@ -124,7 +139,9 @@ export async function getPushPermissionStatus(): Promise<'granted' | 'denied'> {
       const granted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
       return granted ? 'granted' : 'denied';
     }
-    const status = await hasPermission(getMessaging());
+    const messaging = getMessagingSafely();
+    if (!messaging) return 'denied';
+    const status = await hasPermission(messaging);
     return status === AuthorizationStatus.AUTHORIZED || status === AuthorizationStatus.PROVISIONAL
       ? 'granted'
       : 'denied';
@@ -136,7 +153,9 @@ export async function getPushPermissionStatus(): Promise<'granted' | 'denied'> {
 /** Lấy token FCM hiện tại và lưu lên backend; trả về installationId nếu thành công. */
 export async function syncPushToken(adapter: PushRegistrationAdapter): Promise<string | null> {
   if (!isPushSupported()) return null;
-  const fcmToken = await withTimeout(getToken(getMessaging()), TOKEN_TIMEOUT_MS);
+  const messaging = getMessagingSafely();
+  if (!messaging) return null;
+  const fcmToken = await withTimeout(getToken(messaging), TOKEN_TIMEOUT_MS);
   if (!fcmToken) return null;
   await registerToken(adapter, fcmToken);
   return getInstallationId();
@@ -154,7 +173,9 @@ export async function unregisterPushToken(adapter: PushRegistrationAdapter): Pro
 export function watchPushTokenRefresh(adapter: PushRegistrationAdapter): () => void {
   if (!isPushSupported()) return () => {};
   try {
-    return onTokenRefresh(getMessaging(), (token) => {
+    const messaging = getMessagingSafely();
+    if (!messaging) return () => {};
+    return onTokenRefresh(messaging, (token) => {
       void registerToken(adapter, token).catch(() => undefined);
     });
   } catch {
@@ -166,7 +187,9 @@ export function watchPushTokenRefresh(adapter: PushRegistrationAdapter): () => v
 export function subscribeToPushMessages(listener: (envelope: PushEnvelope) => void): () => void {
   if (!isPushSupported()) return () => {};
   try {
-    return onMessage(getMessaging(), (message) => {
+    const messaging = getMessagingSafely();
+    if (!messaging) return () => {};
+    return onMessage(messaging, (message) => {
       const envelope = parsePushEnvelope(message);
       if (envelope) listener(envelope);
     });
@@ -216,7 +239,9 @@ export function parsePushEnvelope(message: RemoteMessage): PushEnvelope | null {
 export function registerPushBackgroundHandler(): void {
   if (!isPushSupported()) return;
   try {
-    setBackgroundMessageHandler(getMessaging(), async () => undefined);
+    const messaging = getMessagingSafely();
+    if (!messaging) return;
+    setBackgroundMessageHandler(messaging, async () => undefined);
   } catch {
     // FCM chưa được cấu hình trên máy (ví dụ dev client thiếu google-services.json).
   }

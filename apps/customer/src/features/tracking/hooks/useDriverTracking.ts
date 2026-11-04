@@ -11,7 +11,9 @@ export function useDriverTracking() {
 const router = useRouter();
 const params = useLocalSearchParams<{ rideId?: string }>();
 const rideId = Number(Array.isArray(params.rideId) ? params.rideId[0] : params.rideId);
-const query = useRideQuery(rideId, false);
+// Keep polling while the tracking screen is open so handover reports still
+// reach the customer when the realtime connection is temporarily unavailable.
+const query = useRideQuery(rideId, true);
 const ride = query.data;
 const error = !rideId ? i18nT("Thiếu mã chuyến.") : query.error?.message ?? '';
 const [cancelling, setCancelling] = useState(false);
