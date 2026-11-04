@@ -11,7 +11,9 @@ export function useHome() {
   const session = useQuery({ queryKey: ['driver', 'session'], queryFn: getHomeSession });
   const verification = useQuery({ queryKey: ['driver', 'verification'], queryFn: getHomeVerification });
   const active = useQuery({ queryKey: ['driver', 'activeRide'], queryFn: getHomeActiveRide });
-  const offer = useQuery({ queryKey: ['driver', 'pendingOffer'], queryFn: getPendingOffer });
+  const online = session.data?.status === 'ONLINE';
+  // Dự phòng khi lỡ frame STOMP/FCM: vẫn thấy offer trong 15 giây.
+  const offer = useQuery({ queryKey: ['driver', 'pendingOffer'], queryFn: getPendingOffer, refetchInterval: online ? 3000 : false });
   const skills = useQuery({ queryKey: ['driver', 'skills'], queryFn: driverApi.skills });
   const documents = useQuery({ queryKey: ['driver', 'documents'], queryFn: driverApi.documents });
   useRefreshOnFocus(session.refetch);

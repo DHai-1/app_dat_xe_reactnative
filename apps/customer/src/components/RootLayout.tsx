@@ -11,6 +11,7 @@ import { usePathname, useRouter, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
 import { BackHandler } from "react-native";
+import { PushBridge } from "./PushBridge";
 
 export default function RootLayout() {
   useLanguage();
@@ -20,6 +21,7 @@ export default function RootLayout() {
   if (!loaded && !error) return null;
   return (
     <QueryClientProvider client={queryClient}>
+      <PushBridge />
       <SettingsProvider>
         <ThemedStack />
       </SettingsProvider>

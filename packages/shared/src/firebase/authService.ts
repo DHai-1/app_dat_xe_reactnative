@@ -15,6 +15,7 @@ type User,
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { Platform } from 'react-native';
 import { getAuthConfig } from './config';
+import { runPushSignOutCleanup } from '../notifications/push';
 
 export type AuthRole = 'customer' | 'driver';
 export const AUTH_FULL_NAME_MAX_LENGTH = 120;
@@ -231,6 +232,8 @@ export async function registerWithBackend(
 export async function signOutFirebase(): Promise<void> {
   pendingPhoneConfirmation = null;
   pendingPhoneLink = null;
+  // Gỡ FCM token trước khi mất phiên đăng nhập, để thiết bị không nhận thông báo của tài khoản cũ.
+  await runPushSignOutCleanup();
   await signOut(getAuth());
   getAuthConfig().onSignedOut?.();
 }

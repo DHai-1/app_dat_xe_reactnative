@@ -36,6 +36,7 @@ Web giữ giới hạn của nguồn: OTP, Google và Facebook yêu cầu app na
 - Cấu hình local hiện có được giữ trong project mới. `EXPO_PUBLIC_*` được đóng gói trong client, không dùng để lưu server secret.
 - `src/config/env.ts` là nơi đọc biến môi trường cho runtime. Production yêu cầu API URL; development có URL mặc định. OAuth/Mapbox chỉ cần cấu hình khi dùng tính năng tương ứng. Mapbox dùng `EXPO_PUBLIC_MAPBOX_TOKEN=pk.…` trong `apps/customer/.env`; không dùng secret token `sk.`. Khi thiếu token, Home hiển thị trạng thái bản đồ chưa khả dụng và không khởi tạo Mapbox native. Sau khi đổi env, khởi động lại Metro với `--clear`.
 - Sentry chỉ bật khi có `EXPO_PUBLIC_SENTRY_DSN`. Lỗi route được ghi qua `lib/logger.ts`; chưa cấu hình upload source map hoặc gửi release lên Sentry.
+- Thông báo đẩy: sau khi đăng nhập, mỗi app lấy FCM token bằng `@react-native-firebase/messaging` và gửi `POST /api/device-tokens` kèm `installationId` (UUID lưu trong AsyncStorage); token được làm mới tự động và gỡ trước khi đăng xuất. Đây là module native nên phải build lại development build, và chạy `npx expo prebuild -p android` một lần để áp dụng quyền `POST_NOTIFICATIONS` khai báo trong `app.json`.
 
 ## Cấu trúc
 

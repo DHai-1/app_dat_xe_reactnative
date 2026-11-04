@@ -1,5 +1,5 @@
 import { useTranslation } from "@/lib/settings/i18n";
-import { translate as i18nT, signOutFirebase } from "@datxe/shared";
+import { translate as i18nT, getPushPermissionStatus, signOutFirebase } from "@datxe/shared";
 import type { ThemeColors } from "@datxe/ui";
 import {
   localizedAlert,
@@ -19,7 +19,6 @@ import { MaterialIcons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
-import * as Notifications from "expo-notifications";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import {
   deleteCustomerAccount,
@@ -58,13 +57,13 @@ export default function SettingsScreen() {
     void Promise.all([
       Location.getForegroundPermissionsAsync(),
       ImagePicker.getCameraPermissionsAsync(),
-      Notifications.getPermissionsAsync(),
+      getPushPermissionStatus(),
     ])
       .then(([location, camera, notification]) =>
         setPermissions({
           location: location.status,
           camera: camera.status,
-          notification: notification.status,
+          notification,
         }),
       )
       .catch(() => setError(i18nT("Chưa đọc được quyền hệ thống.")));

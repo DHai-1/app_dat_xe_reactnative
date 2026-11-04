@@ -4,6 +4,7 @@ export * from './constants';
 export * from './firebase/authService';
 export * from './firebase/config';
 export * from './firebase/phoneNumber';
+export * from './notifications/push';
 export * from './types';
 export * from './utils';
 export * from './ws';

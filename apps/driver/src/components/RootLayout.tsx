@@ -9,6 +9,7 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { DriverRealtimeBridge } from "./DriverRealtimeBridge";
+import { PushBridge } from "./PushBridge";
 
 export default function RootLayout() {
   validateEnv();
@@ -17,6 +18,7 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider brand="driver" mode="system">
+        <PushBridge />
         <DriverRealtimeBridge />
         <DriverStack />
       </ThemeProvider>

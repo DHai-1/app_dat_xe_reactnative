@@ -11,7 +11,10 @@
       "bundleIdentifier": "com.datxe.driver"
     },
     "android": {
-      "package": "com.datxe.driver"
+      "package": "com.datxe.driver",
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "output": "single",
