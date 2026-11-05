@@ -1,4 +1,5 @@
 import { DriverPage } from "@/components/DriverPage";
+import { StatusBadge } from "@/components/StatusBadge";
 import { rideStyles as s } from "@/components/rideStyles";
 import { formatMoney } from "@datxe/shared";
 import {
@@ -34,8 +35,9 @@ export default function HistoryScreen() {
           }
         >
           <Text style={themed_s.label}>
-            #{trip.id} · {trip.status}
+            Mã chuyến #{trip.id}
           </Text>
+          <StatusBadge kind="ride" value={trip.status} contextLabel="Trạng thái chuyến" />
           <Text style={themed_s.text}>
             {trip.pickupAddress ?? "Chưa có địa chỉ"} →{" "}
             {trip.dropoffAddress ?? "Chưa có địa chỉ"}

@@ -17,3 +17,6 @@ export * from './theme/ThemeProvider';
 export * from './useLanguage';
 
 export * from './localizedAlert';
+export * from './usePushForegroundLaunch';
+export * from './SupportCenter';
+export * from './HandoverHistory';

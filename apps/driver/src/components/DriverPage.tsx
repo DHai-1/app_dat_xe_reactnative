@@ -15,6 +15,9 @@ import { usePathname, useRouter } from "expo-router";
 import type { ReactNode } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 import { rideStyles } from "./rideStyles";
+import { useSessionStore } from "@/lib/store";
+import { DriverChatButton } from "./DriverChatButton";
+import { DriverReceptionStatus } from './DriverReceptionStatus';
 
 const tabsList = [
   { route: "home", label: "Trang chủ", icon: "home" },
@@ -44,6 +47,7 @@ export function DriverPage({
   const colors = useThemeColors();
   const router = useRouter();
   const pathname = usePathname();
+  const activeRide = useSessionStore(state => state.activeRide);
   return (
     <ScreenWrapper>
       <View style={styles.header}>
@@ -68,11 +72,13 @@ export function DriverPage({
         <Typography accessibilityRole="header" style={styles.title}>
           {title}
         </Typography>
+        {tabs && activeRide ? <DriverChatButton ride={activeRide} compact /> : null}
       </View>
       <ScrollView
         contentContainerStyle={shared.page}
         keyboardShouldPersistTaps="handled"
       >
+        <DriverReceptionStatus />
         {loading ? <ActivityIndicator color={colors.primary} /> : null}
         {error ? (
           <Card style={styles.errorCard}>

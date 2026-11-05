@@ -1,4 +1,6 @@
 import { rideStyles as s } from "@/components/rideStyles";
+import { DriverChatButton } from "@/components/DriverChatButton";
+import { StatusBadge } from "@/components/StatusBadge";
 import { openExternalDirections } from "@/lib/navigation";
 import { formatMoney } from "@datxe/shared";
 import {
@@ -40,8 +42,10 @@ export default function InProgressRideScreen() {
         {ride ? (
           <>
             <Text style={themed_s.label}>
-              #{ride.id} · {ride.status}
+              Mã chuyến #{ride.id}
             </Text>
+            <StatusBadge kind="ride" value={ride.status} contextLabel="Trạng thái chuyến" />
+            <DriverChatButton ride={ride} />
             <Card style={themed_s.card}>
               <Text style={themed_s.label}>ĐIỂM ĐÓN</Text>
               <Text style={themed_s.text}>{ride.pickupAddress}</Text>

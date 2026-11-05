@@ -1,4 +1,6 @@
 import { DriverPage } from "@/components/DriverPage";
+import { StatusBadge } from "@/components/StatusBadge";
+import { documentTypeLabel, vehicleTypeLabel, transmissionLabel } from "@/lib/displayLabels";
 import { rideStyles as s } from "@/components/rideStyles";
 import {
   Button,
@@ -10,13 +12,6 @@ import {
 } from "@datxe/ui";
 import { Image, StyleSheet, View } from "react-native";
 import { useDocuments } from "../hooks/useDocuments";
-const labels: Record<string, string> = {
-  CCCD: "Mặt trước CCCD",
-  CCCD_BACK: "Mặt sau CCCD",
-  SELFIE: "Ảnh chân dung",
-  DRIVER_LICENSE: "Mặt trước GPLX",
-  DRIVER_LICENSE_BACK: "Mặt sau GPLX",
-};
 export function DocumentForm({ identity = false }: { identity?: boolean }) {
   const extra = useThemedStyles(extraStyles);
 
@@ -68,7 +63,7 @@ export function DocumentForm({ identity = false }: { identity?: boolean }) {
               >
                 <Text style={themed_s.text}>
                   {h.vehicleType === type ? "●" : "○"}{" "}
-                  {type === "CAR" ? "Ô tô" : "Xe máy"}
+                  {vehicleTypeLabel(type)}
                 </Text>
               </Pressable>
             ))}
@@ -80,7 +75,7 @@ export function DocumentForm({ identity = false }: { identity?: boolean }) {
               >
                 <Text style={themed_s.text}>
                   {h.transmission === type ? "●" : "○"}{" "}
-                  {type === "AUTO" ? "Số tự động" : "Số sàn"}
+                  {transmissionLabel(type)}
                 </Text>
               </Pressable>
             ))}
@@ -92,15 +87,13 @@ export function DocumentForm({ identity = false }: { identity?: boolean }) {
         const uri = h.images[type] ?? current?.secure_url;
         return (
           <View key={type} style={themed_s.card}>
-            <Text style={themed_s.label}>{labels[type]}</Text>
+            <Text style={themed_s.label}>{documentTypeLabel(type)}</Text>
             {uri ? <Image source={{ uri }} style={extra.item1} /> : null}
             {current ? (
-              <Text style={themed_s.text}>
-                {current.verification_status}
-                {current.rejection_reason
-                  ? " · " + current.rejection_reason
-                  : ""}
-              </Text>
+              <>
+                <StatusBadge kind="documentReview" value={current.verification_status} contextLabel="Xét duyệt giấy tờ" />
+                {current.rejection_reason ? <Text style={themed_s.error}>Lý do: {current.rejection_reason}</Text> : null}
+              </>
             ) : null}
             <Pressable
               disabled={h.save.isPending}

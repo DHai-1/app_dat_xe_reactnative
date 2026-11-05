@@ -1,4 +1,6 @@
 import { DriverPage } from "@/components/DriverPage";
+import { StatusBadge } from "@/components/StatusBadge";
+import { documentTypeLabel } from "@/lib/displayLabels";
 import { rideStyles as s } from "@/components/rideStyles";
 import {
   Button,
@@ -24,15 +26,12 @@ export default function ApprovalStatusScreen() {
       {v.data ? (
         <Card style={themed_s.card}>
           <Text style={themed_s.title}>
-            {v.data.verification_status === "APPROVED"
-              ? "Hồ sơ đã được duyệt"
-              : v.data.verification_status === "REJECTED"
-                ? "Hồ sơ cần bổ sung"
-                : "Đang chờ xét duyệt"}
+            Kết quả xét duyệt hồ sơ
           </Text>
+          <StatusBadge kind="approval" value={v.data.verification_status} />
           {v.data.missing_documents.length ? (
             <Text style={themed_s.text}>
-              Giấy tờ chưa được duyệt: {v.data.missing_documents.join(", ")}
+              Giấy tờ chưa được duyệt: {v.data.missing_documents.map(documentTypeLabel).join(", ")}
             </Text>
           ) : null}
           {v.data.unverified_skills.length ? (
@@ -45,8 +44,10 @@ export default function ApprovalStatusScreen() {
       {d.data?.map((doc) => (
         <View key={doc.id} style={themed_s.card}>
           <Text style={themed_s.text}>
-            {doc.document_type} · {doc.verification_status}
+            {documentTypeLabel(doc.document_type)}
           </Text>
+          <Text style={themed_s.label}>Mã giấy tờ #{doc.id}</Text>
+          <StatusBadge kind="documentReview" value={doc.verification_status} contextLabel="Xét duyệt giấy tờ" />
           {doc.rejection_reason ? (
             <Text style={themed_s.error}>{doc.rejection_reason}</Text>
           ) : null}

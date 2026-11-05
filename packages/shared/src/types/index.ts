@@ -34,6 +34,7 @@ export type RideStatus =
   | 'NO_DRIVER_FOUND'
   | 'EXPIRED';
 
+export * from './support';
 export type RideActorRole = 'CUSTOMER' | 'DRIVER' | 'SYSTEM';
 export type RideStatusResponse = {
   rideId: number;
@@ -42,12 +43,26 @@ export type RideStatusResponse = {
   changedAt: string;
 };
 
+export type CustomerRideDriver = {
+  id: number;
+  fullName: string | null;
+  phoneNumber: string | null;
+  avatarUrl: string | null;
+  averageRating: number | null;
+  yearsOfExperience?: number | null;
+  licenseClass?: string | null;
+  licenseVerified?: boolean;
+  profileVerified?: boolean;
+};
+
 export type CustomerRideDetail = {
+  payment?: { amount: number; method: PaymentMethod; status: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'; paidAt: string | null } | null;
   pickupNote?: string | null;
   route?: SavedRideRoute | null;
   id: number;
   customerId: number;
   driverId: number | null;
+  driver?: CustomerRideDriver | null;
   vehicleId: number;
   type: 'INSTANT' | 'SCHEDULED';
   scheduledAt: string | null;
@@ -71,6 +86,9 @@ export type CustomerRideDetail = {
     actorRole: RideActorRole | null;
   }>;
   handoverReports: Array<{
+    revision?: number;
+    correctionReason?: string | null;
+    correctionImages?: Array<{ fileUrl: string; publicId: string }>;
     id: number;
     phase: 'PICKUP' | 'DROPOFF';
     odometer: number;

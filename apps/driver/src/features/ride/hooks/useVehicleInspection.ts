@@ -1,20 +1,23 @@
 import { uploadDriverImage } from '@/lib/uploadImage';
+import { request } from '@/lib/api';
+import type { CustomerRideDetail } from '@datxe/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert } from 'react-native';
-import { getDriverActiveRide, submitDriverHandover } from '../api';
+import { getDriverActiveRide, submitDriverHandover, reviseDriverHandover } from '../api';
 export const PHOTO_ANGLES = [['FRONT', 'Đầu xe'], ['BACK', 'Đuôi xe'], ['LEFT', 'Bên trái'], ['RIGHT', 'Bên phải'], ['DASHBOARD', 'Đồng hồ (tùy chọn)']] as const;
 type Photo = { angle: string; uri: string; fileUrl: string; publicId: string };
 export function useVehicleInspection() {
   const router = useRouter(); const client = useQueryClient();
-  const query = useQuery({ queryKey: ['driver', 'activeRide'], queryFn: getDriverActiveRide });
+  const query = useQuery({ queryKey: ['driver', 'activeRide'], queryFn: getDriverActiveRide, refetchInterval: 5000 });
   const ride = query.data; const phase = ride && ['ARRIVED_DESTINATION', 'VEHICLE_RETURNED'].includes(ride.status) ? 'dropoff' : 'pickup';
   const existing = ride?.handoverReports.find(report => report.phase === phase.toUpperCase());
-  const scope=String(ride?.id)+':'+phase;
+  const scope=String(ride?.id)+':'+phase+':'+(existing?.revision ?? 1)+':'+(existing?.correctionReason ?? '');
+  const revisions = useQuery({ queryKey: ['driver', 'handoverRevisions', ride?.id, phase, existing?.revision], enabled: Boolean(existing && ride), queryFn: async () => (await request<{ revision: number; report: CustomerRideDetail['handoverReports'][number]; requestedAt: string }[]>(`/driver/rides/${ride!.id}/handover/${phase}/revisions`))! });
   const [draft,setDraft]=useState({scope,photos:[] as Photo[],odometer:'',fuelLevel:'',notes:''});
-  if(draft.scope!==scope)setDraft({scope,photos:[],odometer:'',fuelLevel:'',notes:''});
+  if(draft.scope!==scope)setDraft({scope,photos:[],odometer:existing ? String(existing.odometer) : '',fuelLevel:existing?.fuelLevel != null ? String(existing.fuelLevel) : '',notes:existing?.notes ?? ''});
   const {photos,odometer,fuelLevel,notes}=draft.scope===scope?draft:{photos:[],odometer:'',fuelLevel:'',notes:''};
   const setOdometer=(value:string)=>setDraft(previous=>previous.scope===scope?{...previous,odometer:value}:previous);
   const setFuelLevel=(value:string)=>setDraft(previous=>previous.scope===scope?{...previous,fuelLevel:value}:previous);
@@ -38,8 +41,9 @@ export function useVehicleInspection() {
     if (!odometer.trim() || !Number.isSafeInteger(Number(odometer)) || Number(odometer) < 0) throw new Error('Nhập số km đồng hồ hợp lệ.');
     if (fuelLevel && (!Number.isInteger(Number(fuelLevel)) || Number(fuelLevel) < 0 || Number(fuelLevel) > 100)) throw new Error('Mức nhiên liệu phải là số nguyên từ 0 đến 100%.');
     if (PHOTO_ANGLES.slice(0, 4).some(([angle]) => !photos.some(photo => photo.angle === angle))) throw new Error('Cần đủ ảnh đầu xe, đuôi xe, bên trái và bên phải.');
-    return submitDriverHandover(ride.id, phase, { odometer: Number(odometer), fuelLevel: fuelLevel ? Number(fuelLevel) : null, notes: notes.trim() || null, photos: photos.map(({ angle, fileUrl, publicId }) => ({ angle, fileUrl, publicId })) });
-  }, onSuccess: async () => { await client.invalidateQueries({ queryKey: ['driver'] }); Alert.alert('Đã gửi biên bản', 'Khách hàng cần kiểm tra và xác nhận biên bản.'); } });
-  const editable = Boolean(ride && !existing && (phase === 'pickup' ? ride.status === 'DRIVER_ARRIVED' : ride.status === 'ARRIVED_DESTINATION'));
-  return { router, ride, phase, existing, photos, uploading, odometer, setOdometer, fuelLevel, setFuelLevel, notes, setNotes, capture, submit, editable, loading: query.isLoading, error: query.error?.message || submit.error?.message };
+    const body = { odometer: Number(odometer), fuelLevel: fuelLevel ? Number(fuelLevel) : null, notes: notes.trim() || null, photos: photos.map(({ angle, fileUrl, publicId }) => ({ angle, fileUrl, publicId })) };
+    return existing ? reviseDriverHandover(ride.id, phase, existing.revision ?? 1, body) : submitDriverHandover(ride.id, phase, body);
+  }, onSuccess: async () => { await client.invalidateQueries({ queryKey: ['driver'] }); Alert.alert('Đã gửi biên bản', 'Khách hàng cần kiểm tra và xác nhận biên bản.'); }, onError: () => { void query.refetch(); } });
+  const editable = Boolean(ride && ((!existing && (phase === 'pickup' ? ride.status === 'DRIVER_ARRIVED' : ride.status === 'ARRIVED_DESTINATION')) || (existing?.correctionReason && !existing.confirmedByCustomer && (phase === 'pickup' ? ride.status === 'VEHICLE_HANDOVER' : ride.status === 'VEHICLE_RETURNED'))));
+  return { router, ride, phase, existing, photos, uploading, odometer, setOdometer, fuelLevel, setFuelLevel, notes, setNotes, capture, submit, editable, revisions, loading: query.isLoading, error: query.error?.message || submit.error?.message };
 }

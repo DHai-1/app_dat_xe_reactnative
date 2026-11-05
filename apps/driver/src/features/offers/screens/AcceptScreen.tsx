@@ -1,5 +1,6 @@
 import { rideStyles as s } from "@/components/rideStyles";
 import { openExternalDirections } from "@/lib/navigation";
+import { vehicleTypeLabel, transmissionLabel } from "@/lib/displayLabels";
 import { formatMoney } from "@datxe/shared";
 import {
   Card,
@@ -20,7 +21,7 @@ export default function AcceptRideScreen() {
   return (
     <SafeAreaView style={themed_s.safe}>
       <ScrollView contentContainerStyle={themed_s.page}>
-        <Pressable onPress={() => h.router.back()}>
+        <Pressable onPress={() => h.router.canGoBack() ? h.router.back() : h.router.replace('/(tabs)/home')}>
           <Text style={themed_s.link}>‹ Quay lại</Text>
         </Pressable>
         <Text style={themed_s.title}>Yêu cầu chuyến đi</Text>
@@ -50,7 +51,7 @@ export default function AcceptRideScreen() {
                 {h.offer.tripDistanceKm} km · {h.offer.estDurationMin} phút
               </Text>
               <Text style={themed_s.text}>
-                {h.offer.vehicle.type} · {h.offer.vehicle.transmission}
+                {vehicleTypeLabel(h.offer.vehicle.type)} · {transmissionLabel(h.offer.vehicle.transmission)}
               </Text>
               <Text style={themed_s.title}>
                 {formatMoney(h.offer.fareEstimate)}

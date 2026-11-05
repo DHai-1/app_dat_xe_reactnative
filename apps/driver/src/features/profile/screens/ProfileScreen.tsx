@@ -1,4 +1,6 @@
 import { DriverPage } from "@/components/DriverPage";
+import { StatusBadge } from "@/components/StatusBadge";
+import { walletTransactionLabel } from "@/lib/displayLabels";
 import { rideStyles as s } from "@/components/rideStyles";
 import { useSessionStore } from "@/lib/store";
 import { formatMoney, signOutFirebase } from "@datxe/shared";
@@ -59,9 +61,7 @@ export default function DriverProfileScreen() {
           </>
         ) : null}
         {v.data ? (
-          <Text style={themed_s.text}>
-            Trạng thái duyệt: {v.data.verification_status}
-          </Text>
+          <StatusBadge kind="approval" value={v.data.verification_status} contextLabel="Xét duyệt hồ sơ" />
         ) : null}
         <Pressable onPress={() => router.push("/(auth)/license-upload")}>
           <Text style={themed_s.link}>Cập nhật giấy phép lái xe</Text>
@@ -72,6 +72,7 @@ export default function DriverProfileScreen() {
         <Pressable onPress={() => router.push("/(auth)/approval-status")}>
           <Text style={themed_s.link}>Xem kết quả xét duyệt</Text>
         </Pressable>
+        <Button label="Trợ giúp · Gửi yêu cầu hỗ trợ" variant="secondary" onPress={() => router.push('/support')} />
       </Card>
       {w.data ? (
         <>
@@ -84,7 +85,8 @@ export default function DriverProfileScreen() {
           <Text style={themed_s.title}>Giao dịch ví</Text>
           {w.data.wallet_transactions.map((t) => (
             <View key={t.id} style={themed_s.card}>
-              <Text style={themed_s.text}>{t.description || t.type}</Text>
+              <Text style={themed_s.text}>{walletTransactionLabel(t.type)}</Text>
+              {t.description && t.description !== t.type ? <Text style={themed_s.text}>{t.description}</Text> : null}
               <Text style={themed_s.text}>{formatMoney(t.amount)}</Text>
               <Text style={themed_s.label}>
                 {new Date(t.created_at).toLocaleString("vi-VN")}

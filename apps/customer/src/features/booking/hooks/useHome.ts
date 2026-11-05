@@ -83,6 +83,7 @@ const recentDestinations=getRecentDestinations(historyQuery.data?.content ?? [])
 const nearbyDrivers=nearbyQuery.data ?? [];
 const loading=[profileQuery,activeQuery,voucherQuery,unreadQuery].some(query=>query.isLoading);
 const loadError=[profileQuery,activeQuery,voucherQuery,unreadQuery].find(query=>query.error)?.error?.message ?? '';
+const retryData = () => Promise.allSettled([profileQuery, activeQuery, voucherQuery, unreadQuery, historyQuery, nearbyQuery].filter(query => query.isError).map(query => query.refetch()));
 const customerName = getCustomerDisplayName(profile?.full_name) || 'bạn';
 const greetingName = customerName === 'bạn'
     ? i18nT('bạn')
@@ -98,5 +99,5 @@ const openBooking = (destination?: string) => {
       ...(currentCoordinates && !locationLoading ? { pickupLat: String(currentCoordinates.lat), pickupLng: String(currentCoordinates.lng), pickupAddress: currentLocation } : {}),
     } });
   };
-return { router, profile, activeRide, recentDestinations, unreadCount, loading, loadError, currentHour, currentLocation, currentCoordinates, nearbyDrivers, locationLoading, refreshLocation, greetingName, activeVoucher, openBooking };
+return { router, profile, activeRide, recentDestinations, unreadCount, loading, loadError, retryData, currentHour, currentLocation, currentCoordinates, nearbyDrivers, locationLoading, refreshLocation, greetingName, activeVoucher, openBooking };
 }

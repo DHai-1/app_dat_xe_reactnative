@@ -2,7 +2,7 @@ import { validateEnv } from "@/config/env";
 import "@/lib/auth";
 import "@/lib/logger";
 import { queryClient } from "@/lib/queryClient";
-import { ThemeProvider, useScreenMotion, useTheme } from "@datxe/ui";
+import { ThemeProvider, useScreenMotion, useTheme, usePushForegroundLaunch } from "@datxe/ui";
 import { MaterialIcons } from "@expo/vector-icons";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
@@ -14,7 +14,8 @@ import { PushBridge } from "./PushBridge";
 export default function RootLayout() {
   validateEnv();
   const [loaded, error] = useFonts(MaterialIcons.font);
-  if (!loaded && !error) return null;
+  const foregroundLaunch = usePushForegroundLaunch();
+  if (!foregroundLaunch || (!loaded && !error)) return null;
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider brand="driver" mode="system">

@@ -5,12 +5,20 @@ import {
   getToken,
   hasPermission,
   onMessage,
+  onNotificationOpenedApp,
+  getInitialNotification,
+  getIsHeadless,
   onTokenRefresh,
   requestPermission,
   setBackgroundMessageHandler,
   type RemoteMessage,
 } from '@react-native-firebase/messaging';
 import { PermissionsAndroid, Platform } from 'react-native';
+import { parsePushData, type PushEnvelope, type PushRole } from './contracts';
+import { clearPushNotifications, presentPushNotification } from './presentation';
+export * from './contracts';
+export * from './openCoordinator';
+export { initializePushPresentation, presentPushNotification, clearPushNotifications, acknowledgePushOpen, rememberPushOpen, subscribeToLocalPushOpens, dismissOfferNotifications } from './presentation';
 
 /**
  * Đăng ký FCM token của thiết bị với backend.
@@ -32,11 +40,7 @@ export type PushRegistrationAdapter = {
 };
 
 /** Envelope backend gửi trong data message: `{ type, payload, messageId }`. */
-export type PushEnvelope = {
-  type: string;
-  messageId?: string;
-  payload?: unknown;
-};
+export type { PushEnvelope } from './contracts';
 
 const INSTALLATION_ID_KEY = 'datxe.push.installationId';
 const ANDROID_NOTIFICATION_PERMISSION_API = 33;
@@ -48,6 +52,9 @@ let signOutCleanup: (() => Promise<void>) | null = null;
 
 export function isPushSupported(): boolean {
   return Platform.OS === 'android' || Platform.OS === 'ios';
+}
+export async function isPushHeadlessLaunch() {
+  return Platform.OS === 'ios' ? getIsHeadless(getMessaging()) : false;
 }
 
 function pushPlatform(): PushPlatform {
@@ -181,6 +188,7 @@ export function setPushSignOutCleanup(cleanup: (() => Promise<void>) | null): vo
 
 /** Chạy trước khi Firebase signOut để request vẫn còn token đăng nhập. */
 export async function runPushSignOutCleanup(): Promise<void> {
+  await withTimeout(clearPushNotifications(), SIGN_OUT_TIMEOUT_MS).catch(() => {});
   const cleanup = signOutCleanup;
   if (!cleanup) return;
   try {
@@ -194,32 +202,36 @@ export async function runPushSignOutCleanup(): Promise<void> {
 }
 
 export function parsePushEnvelope(message: RemoteMessage): PushEnvelope | null {
-  const raw = message.data?.payload;
-  if (typeof raw !== 'string') return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<PushEnvelope> | null;
-    if (!parsed || typeof parsed !== 'object' || typeof parsed.type !== 'string' || !parsed.type) return null;
-    return {
-      type: parsed.type,
-      messageId: typeof parsed.messageId === 'string' ? parsed.messageId : undefined,
-      payload: parsed.payload,
-    };
-  } catch {
-    return null;
-  }
+  return parsePushData(message.data);
 }
 
 /**
- * Data message khi app ở background/đã thoát. Backend hiện gửi data-only nên handler
- * chỉ giữ app thức dậy; nội dung hiển thị do lớp thông báo của hệ điều hành/app đảm nhận.
+ * Registered by each app entry before Expo Router. Notification+data messages are
+ * displayed by the OS; legacy data-only messages need local presentation.
  */
-export function registerPushBackgroundHandler(): void {
+export function registerPushBackgroundHandler(role?: PushRole): void {
   if (!isPushSupported()) return;
   try {
-    setBackgroundMessageHandler(getMessaging(), async () => undefined);
+    setBackgroundMessageHandler(getMessaging(), async message => {
+      const event = parsePushEnvelope(message);
+      if (event && (!event.recipientRole || !role || event.recipientRole === role) && !message.notification) await presentPushNotification(event);
+    });
   } catch {
     // FCM chưa được cấu hình trên máy (ví dụ dev client thiếu google-services.json).
   }
 }
 
-registerPushBackgroundHandler();
+/** Both FCM system notifications and local Expo notifications feed the same tap queue. */
+export function subscribeToRemotePushOpens(listener: (event: PushEnvelope) => void): () => void {
+  if (!isPushSupported()) return () => {};
+  let stopped = false;
+  const consume = (message: RemoteMessage | null) => {
+    const event = message && parsePushEnvelope(message);
+    if (!stopped && event) listener(event);
+  };
+  try {
+    const stop = onNotificationOpenedApp(getMessaging(), consume);
+    void getInitialNotification(getMessaging()).then(consume).catch(() => {});
+    return () => { stopped = true; stop(); };
+  } catch { return () => { stopped = true; }; }
+}

@@ -1,4 +1,7 @@
 import { DriverPage } from "@/components/DriverPage";
+import { DriverChatButton } from "@/components/DriverChatButton";
+import { StatusBadge } from "@/components/StatusBadge";
+import { vehicleTypeLabel, transmissionLabel } from "@/lib/displayLabels";
 import { rideStyles as s } from "@/components/rideStyles";
 import type { DriverDocument, DriverSkill } from "@datxe/shared";
 import {
@@ -11,16 +14,8 @@ import {
 import { StyleSheet, View } from "react-native";
 import { useHome } from "../hooks/useHome";
 
-const vehicleLabel: Record<DriverSkill["vehicle_type"], string> = {
-  CAR: "Ô tô",
-  MOTORCYCLE: "Xe máy",
-};
-const transmissionLabel: Record<DriverSkill["transmission"], string> = {
-  AUTO: "số tự động",
-  MANUAL: "số sàn",
-};
 const describeSkill = (skill: DriverSkill) =>
-  `${vehicleLabel[skill.vehicle_type]} · ${transmissionLabel[skill.transmission]}${
+  `${vehicleTypeLabel(skill.vehicle_type)} · ${transmissionLabel(skill.transmission)}${
     skill.license_class ? ` · hạng ${skill.license_class}` : ""
   }`;
 
@@ -82,9 +77,7 @@ export default function DriverHomeScreen() {
         <Text style={themed_s.title}>
           {h.session.data?.fullName ?? "Tài xế"}
         </Text>
-        <Text style={themed_s.text}>
-          Trạng thái: {h.session.data?.status ?? "Đang tải…"}
-        </Text>
+        {h.session.data ? <StatusBadge kind="availability" value={h.session.data.status} contextLabel="Trạng thái nhận chuyến" /> : <Text style={themed_s.text}>Đang tải trạng thái…</Text>}
         {h.verification.data && !approved ? (
           <Pressable onPress={() => h.router.push("/(auth)/approval-status")}>
             <Text style={themed_s.link}>
@@ -116,6 +109,7 @@ export default function DriverHomeScreen() {
           <Text style={themed_s.text}>
             Chuyến đang thực hiện #{h.active.data.id}
           </Text>
+          <StatusBadge kind="ride" value={h.active.data.status} contextLabel="Trạng thái chuyến" />
           <Text style={themed_s.text}>
             {h.active.data.pickupAddress} → {h.active.data.dropoffAddress}
           </Text>
@@ -125,6 +119,7 @@ export default function DriverHomeScreen() {
             label={"Tiếp tục chuyến"}
             textStyle={themed_s.buttonText}
           />
+          <DriverChatButton ride={h.active.data} />
         </Card>
       ) : null}
 
