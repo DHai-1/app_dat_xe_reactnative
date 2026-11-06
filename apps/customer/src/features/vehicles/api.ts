@@ -34,10 +34,10 @@ export async function deleteCustomerVehicle(id: number): Promise<void> {
   await request(`/customer/vehicles/${id}`, { method: 'DELETE', allowNull: true });
 }
 
-export async function confirmCustomerHandover(id: number, phase: 'pickup' | 'dropoff', revision = 1): Promise<void> {
+export async function confirmCustomerHandover(id: number, phase: 'pickup' | 'dropoff'): Promise<void> {
   await request(`/customer/rides/${id}/handover/${phase}/confirm`, {
     method: 'POST',
-    body: { confirmed: true, revision },
+    body: { confirmed: true },
     allowNull: true,
   });
 }

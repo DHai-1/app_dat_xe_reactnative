@@ -26,7 +26,5 @@ export function useLiveDriverLocation(rideId: number, enabled: boolean, refresh:
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => { clearTimeout(reset); clearInterval(timer); unsubscribe(); notifications(); connection(); void socket.disconnect(); };
   }, [rideId, enabled, refresh, driverAssigned]);
-  // Transport receipt cannot make an older GPS fix fresh again.
-  const sampledAt = sample ? Date.parse(sample.timestamp) : null;
-  return { sample, connected, signalLost: enabled && (!connected || locationSignalLost(sampledAt === null ? received : Math.min(sampledAt, received ?? sampledAt), started, now, env.locationStaleMs)) };
+  return { sample, connected, signalLost: enabled && locationSignalLost(received, started, now, env.locationStaleMs) };
 }

@@ -8,7 +8,6 @@ module.exports = ({ config }) => {
     ...(config.plugins ?? []),
     '@react-native-firebase/app',
     '@react-native-firebase/auth',
-    ['expo-notifications', { defaultChannel: 'datxe-updates-v1', enableBackgroundRemoteNotifications: true }],
     '@react-native-google-signin/google-signin',
     '@rnmapbox/maps',
     'expo-status-bar',

@@ -22,8 +22,6 @@ import {
   rideStatusLabel,
 } from "../components/DriverTrackingScreenParts";
 import { useDriverTracking } from "../hooks/useDriverTracking";
-import { DriverProfileCard } from "../components/DriverProfileCard";
-import { assignedDriver } from "../driverProfile";
 export default function DriverTrackingScreen() {
   const extra = useThemedStyles(extraStyles);
 
@@ -45,7 +43,6 @@ export default function DriverTrackingScreen() {
     cancel,
     live,
   } = useDriverTracking();
-  const driver = ride ? assignedDriver(ride) : null;
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <ScreenHeader
@@ -146,21 +143,23 @@ export default function DriverTrackingScreen() {
                 </Text>
               ) : null}
             </View>
-            {driver ? (
-              <DriverProfileCard
-                key={`${ride.id}:${driver.id}`}
-                driver={driver}
-                contactEnabled={chatStatuses.includes(ride.status)}
-                unreadCount={ride.unreadChatCount}
-                onMessage={() => router.push({ pathname: '/chat', params: { rideId: String(ride.id) } })}
-              />
-            ) : (
-              <Card style={styles.card}>
-                <Text style={styles.section}>{i18nT('Thông tin tài xế')}</Text>
-                <Text style={styles.body}>{i18nT(ride.driverId ? 'Chưa tải được hồ sơ tài xế.' : 'Chuyến này đang chờ tài xế nhận.')}</Text>
-                {ride.driverId ? <Action label={i18nT('Tải lại hồ sơ tài xế')} onPress={() => void refresh()} /> : null}
-              </Card>
-            )}
+            <Card style={styles.card}>
+              <Text style={styles.section}>{i18nT("Thông tin tài xế")}</Text>
+              <Text style={styles.body}>
+                {i18nT(
+                  ride.driverId
+                    ? i18nT("Tài xế #{0} đã được phân công.", {
+                        "0": ride.driverId,
+                      })
+                    : "Chuyến này đang chờ tài xế nhận.",
+                )}
+              </Text>
+              <Text style={styles.note}>
+                {i18nT(
+                  "Chấm xanh trên bản đồ là vị trí gần nhất tài xế gửi trong chuyến này.",
+                )}
+              </Text>
+            </Card>
             <Card style={styles.card}>
               <Text style={styles.section}>{i18nT("Xe của bạn")}</Text>
               <Text style={styles.body}>

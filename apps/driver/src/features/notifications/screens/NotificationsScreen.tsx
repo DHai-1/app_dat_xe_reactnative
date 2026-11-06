@@ -1,5 +1,4 @@
 import { DriverPage } from "@/components/DriverPage";
-import { notificationTypeLabel } from "@/lib/displayLabels";
 import { rideStyles as s } from "@/components/rideStyles";
 import {
   Card,
@@ -34,28 +33,24 @@ export default function NotificationsScreen() {
           <Text style={themed_s.link}>Đánh dấu tất cả đã đọc</Text>
         </Pressable>
       ) : null}
-      {items.map((item) => {
-        const body = message(item.payload);
-        return (
-          <Pressable
-            key={item.id}
-            disabled={mark.isPending || Boolean(item.readAt)}
-            onPress={() => mark.mutate(item.id)}
-            style={themed_s.card}
-          >
-            <Text style={themed_s.label}>
-              {item.readAt ? "Đã đọc" : "Chưa đọc"}
-            </Text>
-            <Text style={themed_s.text}>{notificationTypeLabel(item.type)}</Text>
-            <Text style={themed_s.text}>
-              {body && body !== item.type ? body : "Mở ứng dụng để xem thông tin mới nhất."}
-            </Text>
-            <Text style={themed_s.label}>
-              {new Date(item.createdAt).toLocaleString("vi-VN")}
-            </Text>
-          </Pressable>
-        );
-      })}
+      {items.map((item) => (
+        <Pressable
+          key={item.id}
+          disabled={mark.isPending || Boolean(item.readAt)}
+          onPress={() => mark.mutate(item.id)}
+          style={themed_s.card}
+        >
+          <Text style={themed_s.label}>
+            {item.readAt ? "Đã đọc" : "Chưa đọc"} · {item.type}
+          </Text>
+          <Text style={themed_s.text}>
+            {message(item.payload) || "Có cập nhật từ hệ thống."}
+          </Text>
+          <Text style={themed_s.label}>
+            {new Date(item.createdAt).toLocaleString("vi-VN")}
+          </Text>
+        </Pressable>
+      ))}
       {!q.isLoading && !q.error && !items.length ? (
         <Card style={themed_s.card}>
           <Text style={themed_s.text}>Chưa có thông báo.</Text>

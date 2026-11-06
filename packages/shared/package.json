@@ -15,14 +15,12 @@
     "@react-native-async-storage/async-storage": "*",
     "@react-native-firebase/auth": "*",
     "@react-native-firebase/messaging": "*",
-    "expo-notifications": "*",
     "@react-native-google-signin/google-signin": "*",
     "react-native-fbsdk-next": "*",
     "react-native": "*"
   },
   "exports": {
     ".": "./src/index.ts",
-    "./ws": "./src/ws/index.ts",
-    "./notifications": "./src/notifications/push.ts"
+    "./ws": "./src/ws/index.ts"
   }
 }

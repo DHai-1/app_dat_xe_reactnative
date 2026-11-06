@@ -1,35 +1,6 @@
 import { useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useQuery,useMutation,useQueryClient } from '@tanstack/react-query';
+import { useLocalSearchParams,useRouter } from 'expo-router';
 import { useRefreshOnFocus } from '@/lib/useRefreshOnFocus';
-import type { CustomerRideDetail } from '@datxe/shared';
-import { getDriverRide, confirmCashReceived } from '../api';
-
-export function useComplete() {
-  const { rideId } = useLocalSearchParams<{ rideId?: string }>();
-  const router = useRouter();
-  const client = useQueryClient();
-  const id = Number(rideId);
-  const valid = Number.isSafeInteger(id) && id > 0;
-  const key = ['driver', 'ride', id];
-  const query = useQuery({ queryKey: key, queryFn: () => getDriverRide(id), enabled: valid });
-  const refetch = query.refetch;
-  useRefreshOnFocus(useCallback(() => valid ? refetch() : undefined, [valid, refetch]));
-  const cash = useMutation({
-    mutationFn: () => {
-      if (!valid || query.data?.status !== 'COMPLETED' || query.data.payment?.method !== 'CASH' || query.data.payment.status !== 'PENDING')
-        throw new Error('Chuyến không còn chờ thu tiền mặt.');
-      return confirmCashReceived(id);
-    },
-    onSuccess: async payment => {
-      if (payment) client.setQueryData<CustomerRideDetail | null>(key, current => current?.payment ? {
-        ...current, payment: { ...current.payment, amount: payment.amount, status: payment.status, paidAt: payment.paidAt },
-      } : current);
-      await Promise.all([
-        client.invalidateQueries({ queryKey: ['driver', 'wallet'] }),
-        client.invalidateQueries({ queryKey: key }),
-      ]);
-    },
-  });
-  return { query, cash, router, valid };
-}
+import { getDriverRide,confirmCashReceived } from '../api';
+export function useComplete(){const {rideId}=useLocalSearchParams<{rideId?:string}>(),router=useRouter(),client=useQueryClient();const id=Number(rideId);const valid=Number.isSafeInteger(id)&&id>0;const query=useQuery({queryKey:['driver','ride',id],queryFn:()=>getDriverRide(id),enabled:valid});const refetch=query.refetch;useRefreshOnFocus(useCallback(()=>valid?refetch():undefined,[valid,refetch]));const cash=useMutation({mutationFn:()=>{if(!valid||query.data?.status!=='COMPLETED')throw new Error('Chuyến chưa hoàn tất.');return confirmCashReceived(id);},onSuccess:()=>client.invalidateQueries({queryKey:['driver','wallet']})});return {query,cash,router,valid};}

@@ -2,7 +2,6 @@ import { rideStyles as s } from "@/components/rideStyles";
 import {
   Button,
   Card,
-  HandoverHistory,
   MotionPressable as Pressable,
   ScreenWrapper as SafeAreaView,
   Typography as Text,
@@ -37,14 +36,7 @@ export default function VehicleInspectionScreen() {
         <PickupNoteCard />
         {h.loading ? <ActivityIndicator /> : null}
         {h.error ? <Text style={themed_s.error}>{h.error}</Text> : null}
-        {h.existing ? <Text style={themed_s.label}>Phiên bản {h.existing.revision ?? 1}</Text> : null}
-        {h.existing?.correctionReason ? <Card style={themed_s.card}>
-          <Text style={themed_s.title}>Khách yêu cầu điều chỉnh</Text>
-          <Text style={themed_s.text}>{h.existing.correctionReason}</Text>
-          {h.existing.correctionImages?.map(image => <Image key={image.publicId} source={{ uri: image.fileUrl }} style={extra.item1} />)}
-          <Text style={themed_s.text}>Kiểm tra lại cùng khách, cập nhật thông tin và chụp bộ ảnh mới. Phiên bản cũ được giữ để đối chiếu; khách cần xác nhận lại trước khi tiếp tục chuyến.</Text>
-        </Card> : null}
-        {h.existing && !h.editable ? (
+        {h.existing ? (
           <Card style={themed_s.card}>
             <Text style={themed_s.text}>
               {h.existing.confirmedByCustomer
@@ -128,9 +120,6 @@ export default function VehicleInspectionScreen() {
             Chỉ lập biên bản sau khi đã báo tới điểm đón hoặc điểm trả.
           </Text>
         )}
-        {h.revisions.error ? <Button label="Thử tải lại phiên bản cũ" variant="secondary" onPress={() => void h.revisions.refetch()} /> : null}
-        <HandoverHistory revisions={h.revisions.data ?? []} />
-        <Button label="Cần bộ phận hỗ trợ" variant="ghost" onPress={() => h.router.push({ pathname: '/support', params: h.ride ? { rideId: String(h.ride.id) } : {} })} />
       </ScrollView>
     </SafeAreaView>
   );

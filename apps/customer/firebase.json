@@ -1,7 +1,0 @@
-{
-  "react-native": {
-    "messaging_android_notification_delegation_enabled": false,
-    "messaging_android_notification_channel_id": "datxe-updates-v1",
-    "messaging_ios_foreground_presentation_options": []
-  }
-}

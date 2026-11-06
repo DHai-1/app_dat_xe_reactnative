@@ -1,12 +1,7 @@
 import { ScreenHeader } from "@/components/ScreenHeader";
-import { useSupportRequests } from '@/lib/useSupportRequests';
-import { pickSupportImage } from '@/lib/supportImages';
-import { useLocalSearchParams } from 'expo-router';
 import { translate as i18nT } from "@datxe/shared";
 import {
   Card,
-  SupportCenter,
-  Button,
   MotionPressable as Pressable,
   ScreenWrapper as SafeAreaView,
   Typography as Text,
@@ -23,8 +18,6 @@ import {
 } from "../components/CustomerSupportScreenParts";
 import { useCustomerSupport } from "../hooks/useCustomerSupport";
 export default function CustomerSupportScreen() {
-  const support = useSupportRequests();
-  const { rideId } = useLocalSearchParams<{ rideId?: string }>();
   useLanguage();
 
   const colors = useThemeColors();
@@ -52,15 +45,11 @@ export default function CustomerSupportScreen() {
           <Text style={styles.body}>
             {i18nT(
               isSafety
-                ? "Theo dõi chuyến hoặc gửi yêu cầu hỗ trợ nếu có vấn đề. Kênh này không xử lý khẩn cấp."
-                : "Gửi mô tả và ảnh cho bộ phận hỗ trợ, theo dõi phản hồi bằng mã tiếp nhận.",
+                ? "Bạn có thể mở theo dõi để xem trạng thái và biên bản chuyến hiện tại."
+                : "Bạn có thể tra cứu chuyến, trạng thái và lịch sử trực tiếp từ dữ liệu tài khoản.",
             )}
           </Text>
         </View>
-        <Button label="Tải lại phản hồi hỗ trợ" variant="secondary" onPress={() => void support.retry()} />
-        {support.error ? <Text style={styles.body}>{support.error}</Text> : null}
-        {support.loading ? <ActivityIndicator /> : null}
-        <SupportCenter {...support} initialRideId={Number(rideId) || undefined} pickImage={pickSupportImage} />
         {error ? (
           <Pressable onPress={() => void retry()}>
             <Text style={styles.body}>{i18nT(error)}</Text>
