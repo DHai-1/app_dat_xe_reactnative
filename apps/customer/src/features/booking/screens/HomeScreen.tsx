@@ -48,6 +48,7 @@ export default function HomeScreen() {
     unreadCount,
     loading,
     loadError,
+    retryData,
     currentHour,
     currentLocation,
     currentCoordinates,
@@ -203,11 +204,12 @@ export default function HomeScreen() {
             {loadError ? (
               <Pressable
                 accessibilityRole="alert"
-                onPress={() => void refreshLocation(true)}
+                accessibilityLabel={i18nT("Thử tải dữ liệu")}
+                onPress={() => void retryData()}
                 style={styles.alertPill}
               >
                 <Text numberOfLines={2} style={styles.alertText}>
-                  {i18nT(loadError)}
+                  {i18nT(loadError)} · {i18nT("Thử tải dữ liệu")}
                 </Text>
               </Pressable>
             ) : loading && !profile ? (

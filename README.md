@@ -36,7 +36,7 @@ Web giữ giới hạn của nguồn: OTP, Google và Facebook yêu cầu app na
 - Cấu hình local hiện có được giữ trong project mới. `EXPO_PUBLIC_*` được đóng gói trong client, không dùng để lưu server secret.
 - `src/config/env.ts` là nơi đọc biến môi trường cho runtime. Production yêu cầu API URL; development có URL mặc định. OAuth/Mapbox chỉ cần cấu hình khi dùng tính năng tương ứng. Mapbox dùng `EXPO_PUBLIC_MAPBOX_TOKEN=pk.…` trong `apps/customer/.env`; không dùng secret token `sk.`. Khi thiếu token, Home hiển thị trạng thái bản đồ chưa khả dụng và không khởi tạo Mapbox native. Sau khi đổi env, khởi động lại Metro với `--clear`.
 - Sentry chỉ bật khi có `EXPO_PUBLIC_SENTRY_DSN`. Lỗi route được ghi qua `lib/logger.ts`; chưa cấu hình upload source map hoặc gửi release lên Sentry.
-- Thông báo đẩy: sau khi đăng nhập, mỗi app lấy FCM token bằng `@react-native-firebase/messaging` và gửi `POST /api/device-tokens` kèm `installationId` (UUID lưu trong AsyncStorage); token được làm mới tự động và gỡ trước khi đăng xuất. Đây là module native nên phải build lại development build, và chạy `npx expo prebuild -p android` một lần để áp dụng quyền `POST_NOTIFICATIONS` khai báo trong `app.json`.
+- Thông báo đẩy: mỗi app đăng ký/làm mới FCM token theo `installationId` và gỡ token khi đăng xuất. Entry đăng ký background handler trước Router; Expo Notifications hiển thị local banner/dự phòng data-only, xử lý tap/cold start và chờ khôi phục account/router. Backend mới gửi notification+data cho Android/APNs, kèm TTL offer và recipient; app xác thực offer hiện tại trước khi mở. Cần rebuild development client sau khi thêm module và cập nhật backend. Xem [cấu hình, bằng chứng kiểm tra và ma trận QA push](docs/push-notifications.md).
 
 ## Cấu trúc
 
@@ -81,6 +81,16 @@ Customer chuyển nhóm `(main)` thành `(tabs)` cho Home/History/Notifications/
 Driver nhận/bỏ qua offer, tiến độ chuyến, biên bản bàn giao và GPS đã được nối backend. Các phần history, notifications, profile và earnings còn dữ liệu mẫu/state local từ nguồn cần hoàn thiện riêng.
 
 DTO/`RideStatus`/`Role` và hợp đồng map được đối chiếu với backend riêng tại `D:\datxebackend`. STOMP dùng Firebase token, heartbeat, reconnect và khôi phục subscription; đã nối tọa độ tài xế và thông báo chuyến, thay polling ở màn hình customer tracking. Chi tiết migration V12/V13, trường API mới, GPS nền và giới hạn routing xe máy nằm trong [docs/map-upgrade.md](docs/map-upgrade.md).
+
+## Chat tài xế
+
+Tracking Customer có card nhận diện tài xế (avatar, tên, rating và số năm kinh nghiệm). Nhấn card mở modal hồ sơ với hạng GPLX/thông tin xác minh và nút gọi/nhắn tin; gọi chuyển số thật sang ứng dụng điện thoại, nhắn tin mở chat text/ảnh của chuyến. Dữ liệu lấy từ `driver` trong chi tiết chuyến; backend đã bổ sung `yearsOfExperience`, `licenseClass`, `licenseVerified`, `profileVerified`, không trả số/ảnh giấy tờ hoặc ngân hàng. Cần cập nhật backend để có các trường mới. Khi thiếu dữ liệu, UI thông báo chưa cập nhật thay vì tạo giá trị mẫu; chưa có ETA tới điểm đón trong API.
+
+Driver mở chat từ thẻ chuyến đã nhận trên Home, màn chuyến đang thực hiện hoặc nút chat ở header các tab. Badge hiển thị số tin khách chưa đọc. Chat chỉ cho gửi từ `DRIVER_ASSIGNED` đến `VEHICLE_RETURNED`; offer chưa nhận chưa được truy cập cuộc trò chuyện. Chuyến đã đóng vẫn xem được tin cũ khi mở route `/chat?rideId=...`.
+
+Màn hỗ trợ text/ảnh, xem ảnh lớn, tải tin cũ và trạng thái đang gửi/thất bại/đã gửi/đã đọc. Tin lỗi có nút thử lại với cùng `clientMessageId`; ảnh đã upload được tái sử dụng. STOMP cập nhật khi có sự kiện, polling 5 giây dự phòng khi màn chat được focus và app đang active. Chỉ đánh dấu tin khách đã đọc khi màn chat đang mở. Draft và tin chờ gửi hiện giữ trong bộ nhớ của màn, chưa tồn tại sau khi đóng màn hoặc kill app.
+
+Test hồi quy: `node --test tests/driver-chat.test.cjs`. Kiểm tra thiết bị: đăng nhập Customer/Driver thật, nhận chuyến, gửi text/ảnh hai chiều, xác nhận badge giảm sau mở chat, ngắt mạng rồi retry, hoàn tất/hủy chuyến và kiểm tra chat chuyển sang chỉ xem.
 
 ## Kiểm tra
 

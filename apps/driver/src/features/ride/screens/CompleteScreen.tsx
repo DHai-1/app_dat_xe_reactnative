@@ -1,4 +1,5 @@
 import { DriverPage } from "@/components/DriverPage";
+import { StatusBadge } from "@/components/StatusBadge";
 import { rideStyles as s } from "@/components/rideStyles";
 import { formatMoney } from "@datxe/shared";
 import {
@@ -29,8 +30,9 @@ export default function CompleteRideScreen() {
         <>
           <Card style={themed_s.card}>
             <Text style={themed_s.label}>
-              #{ride.id} · {ride.status}
+              Mã chuyến #{ride.id}
             </Text>
+            <StatusBadge kind="ride" value={ride.status} contextLabel="Trạng thái chuyến" />
             <Text style={themed_s.text}>
               {ride.pickupAddress} → {ride.dropoffAddress}
             </Text>
@@ -51,12 +53,13 @@ export default function CompleteRideScreen() {
           </Card>
           {ride.status === "COMPLETED" ? (
             <Card style={themed_s.card}>
-              {cash.data?.rideId === ride.id ? (
-                <Text style={themed_s.text}>
-                  Thanh toán: {cash.data.status} ·{" "}
-                  {formatMoney(cash.data.amount)}
-                </Text>
-              ) : (
+              {ride.payment?.status === 'PAID' ? (
+                <>
+                  <StatusBadge kind="payment" value={ride.payment.status} contextLabel="Thanh toán" />
+                  <Text style={themed_s.text}>{formatMoney(ride.payment.amount)}</Text>
+                  {ride.payment.paidAt ? <Text style={themed_s.label}>{new Date(ride.payment.paidAt).toLocaleString('vi-VN')}</Text> : null}
+                </>
+              ) : ride.payment?.method === 'CASH' && ride.payment.status === 'PENDING' ? (
                 <>
                   <Text style={themed_s.text}>
                     Nếu khách thanh toán bằng tiền mặt, chỉ xác nhận sau khi đã
@@ -86,7 +89,10 @@ export default function CompleteRideScreen() {
                     textStyle={themed_s.buttonText}
                   />
                 </>
-              )}
+              ) : ride.payment ? <>
+                <StatusBadge kind="payment" value={ride.payment.status} contextLabel="Thanh toán" />
+                <Text style={themed_s.text}>Thanh toán được xử lý theo phương thức của chuyến.</Text>
+              </> : <Text style={themed_s.text}>Chưa tải được thông tin thanh toán. Hãy tải lại trước khi xác nhận.</Text>}
             </Card>
           ) : null}
           {ride.handoverReports.map((report) => (
@@ -115,10 +121,10 @@ export default function CompleteRideScreen() {
           <Card style={themed_s.card}>
             <Text style={themed_s.title}>Lịch sử trạng thái</Text>
             {ride.statusHistory.map((entry) => (
-              <Text key={entry.id} style={themed_s.text}>
-                {entry.toStatus} ·{" "}
-                {new Date(entry.createdAt).toLocaleString("vi-VN")}
-              </Text>
+              <View key={entry.id} style={extra.historyItem}>
+                <StatusBadge kind="ride" value={entry.toStatus} contextLabel="Trạng thái chuyến" />
+                <Text style={themed_s.label}>{new Date(entry.createdAt).toLocaleString("vi-VN")}</Text>
+              </View>
             ))}
           </Card>
         </>
@@ -133,4 +139,5 @@ export default function CompleteRideScreen() {
 const extraStyles = () =>
   StyleSheet.create({
     item1: { height: 180, borderRadius: 12 },
+    historyItem: { gap: 6 },
   });

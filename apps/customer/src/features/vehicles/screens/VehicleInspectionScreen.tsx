@@ -2,6 +2,10 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { getLocale, translate as i18nT } from "@datxe/shared";
 import {
   Card,
+  Button,
+  EvidenceEditor,
+  HandoverHistory,
+  ThemedTextInput as TextInput,
   MotionPressable as Pressable,
   ScreenWrapper as SafeAreaView,
   Typography as Text,
@@ -24,8 +28,8 @@ export default function VehicleInspectionScreen() {
 
   const styles = useThemedStyles(base_styles);
 
-  const { router, phase, ride, loading, saving, error, report, confirm } =
-    useVehicleInspection();
+  const h = useVehicleInspection();
+  const { router, phase, ride, loading, saving, error, report, confirm } = h;
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <ScreenHeader
@@ -56,6 +60,8 @@ export default function VehicleInspectionScreen() {
             </Text>
             {report ? (
               <>
+                <Text style={styles.section}>Phiên bản {report.revision ?? 1}</Text>
+                {report.correctionReason ? <View style={styles.metrics}><Text style={styles.body}>Đang chờ tài xế điều chỉnh: {report.correctionReason}</Text><Text style={styles.meta}>Tài xế cần gửi phiên bản mới. Bạn sẽ kiểm tra lại trước khi xác nhận.</Text></View> : null}
                 <View style={styles.metrics}>
                   <Metric
                     label="Odometer"
@@ -115,9 +121,9 @@ export default function VehicleInspectionScreen() {
           </Card>
         ) : null}
         {error ? <Text style={styles.error}>{i18nT(error)}</Text> : null}
-        {report && !report.confirmedByCustomer ? (
+        {h.canReview ? (
           <Pressable
-            disabled={saving}
+            disabled={saving || h.correction.isPending || h.uploading}
             onPress={() => void confirm()}
             style={[styles.primary, saving && styles.disabled]}
           >
@@ -130,6 +136,17 @@ export default function VehicleInspectionScreen() {
             )}
           </Pressable>
         ) : null}
+        {h.canReview ? <Button label="Thông tin không đúng · Yêu cầu điều chỉnh" variant="secondary" disabled={saving || h.correction.isPending} onPress={() => h.setCorrectionOpen(!h.correctionOpen)} /> : null}
+        {h.correctionOpen && h.canReview ? <Card style={styles.card}>
+          <Text style={styles.section}>Yêu cầu sửa biên bản phiên bản {report?.revision ?? 1}</Text>
+          <TextInput accessibilityLabel="Lý do yêu cầu điều chỉnh" placeholder="Thông tin nào chưa đúng? Ít nhất 10 ký tự" value={h.reason} onChangeText={h.setReason} multiline maxLength={2000} editable={!h.correction.isPending} />
+          <EvidenceEditor images={h.images} onChange={h.setImages} pick={h.pickSupportImage} disabled={h.correction.isPending} onBusyChange={h.setUploading} />
+          {h.correction.error ? <Text style={styles.error}>{h.correction.error.message}</Text> : null}
+          <Button label={h.correction.isPending ? 'Đang gửi…' : 'Gửi yêu cầu điều chỉnh'} disabled={saving || h.uploading || h.correction.isPending} onPress={() => h.correction.mutate()} />
+        </Card> : null}
+        {h.revisions.error ? <Button label="Chưa tải được phiên bản cũ · Thử lại" variant="secondary" onPress={() => void h.revisions.refetch()} /> : null}
+        <HandoverHistory revisions={h.revisions.data ?? []} />
+        {ride ? <Button label="Cần bộ phận hỗ trợ" variant="ghost" onPress={() => router.push({ pathname: '/support', params: { rideId: String(ride.id) } })} /> : null}
       </ScrollView>
     </SafeAreaView>
   );
