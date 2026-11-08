@@ -48,6 +48,8 @@ module.exports = ({ config }) => {
 
   return {
     ...config,
+    // Customer dùng MapLibre (GoongMap); Mapbox chỉ dùng ở driver nên loại khỏi autolinking.
+    autolinking: { exclude: ['@rnmapbox/maps', '@rnmapbox/navigation'] },
     android: {
       ...config.android,
       ...(fs.existsSync(googleServicesFile) ? { googleServicesFile: './google-services.json' } : {}),
