@@ -28,8 +28,7 @@ export default function AddPhoneNumberScreen() {
     accountProvider,
     country,
     setCountry,
-    phone,
-    setPhone,
+    initialPhone,
     otp,
     setOtp,
     otpStep,
@@ -70,7 +69,7 @@ export default function AddPhoneNumberScreen() {
         >
           <AuthHero
             detail={
-              otpStep ? toInternationalPhoneNumber(phone, country) : undefined
+              otpStep ? toInternationalPhoneNumber(initialPhone, country) : undefined
             }
             icon={otpStep ? "sms" : "phone-android"}
             subtitle={i18nT(
@@ -102,12 +101,11 @@ export default function AddPhoneNumberScreen() {
                   onChangeText={onChangePhone}
                   onSelectCountry={(value) => {
                     setCountry(value);
-                    setPhone((current) => current.slice(0, value.maxLength));
                     setInvalid(false);
                     setError("");
                     setNotice("");
                   }}
-                  value={phone}
+                  defaultValue={initialPhone}
                 />
                 <Text style={styles.helperText}>
                   {i18nT("Chúng tôi sẽ gửi mã xác thực qua SMS.")}

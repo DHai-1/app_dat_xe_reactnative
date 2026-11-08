@@ -1,13 +1,14 @@
 import { translate as i18nT } from "@datxe/shared";
 import {
   Button,
+  MotionPressable as Pressable,
   PhoneNumberInput,
   ScreenWrapper as SafeAreaView,
   Typography as Text,
   useLanguage,
   useThemedStyles,
 } from "@datxe/ui";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { Image, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 
 import {
   SocialButton,
@@ -23,7 +24,6 @@ export default function LoginScreen() {
 
   const {
     router,
-    phone,
     setPhone,
     country,
     setCountry,
@@ -45,6 +45,9 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
         >
+          <Image source={require("../../../../assets/images/brand-logo.png")}
+            accessibilityLabel="PtitGo" accessibilityIgnoresInvertColors
+            resizeMode="contain" style={styles.brandLogo} />
           <Text accessibilityRole="header" style={styles.heading}>
             {i18nT("Đồng hành cùng PtitGo")}
           </Text>
@@ -62,11 +65,9 @@ export default function LoginScreen() {
               }}
               onSelectCountry={(value) => {
                 setCountry(value);
-                setPhone((current) => current.slice(0, value.maxLength));
                 setError("");
               }}
               placeholder={i18nT("Nhập số điện thoại của bạn")}
-              value={phone}
             />
             {error ? (
               <Text accessibilityRole="alert" style={styles.errorText}>
@@ -108,25 +109,16 @@ export default function LoginScreen() {
 
           <View style={styles.footer}>
             <Text style={styles.terms}>
-              {i18nT("Bằng việc Tiếp tục, Tôi đã đọc và đồng ý với")}
-              {i18nT(" ")}
-              <Text
-                accessibilityRole="link"
-                onPress={() => router.push("/terms-of-service" as never)}
-                style={styles.termsLink}
-              >
-                {i18nT("Điều khoản sử dụng")}
-              </Text>
-              {i18nT(" và ")}
-              <Text
-                accessibilityRole="link"
-                onPress={() => router.push("/privacy-policy" as never)}
-                style={styles.termsLink}
-              >
-                {i18nT("Chính sách bảo mật")}
-              </Text>
-              .
+              {i18nT("Bằng việc tiếp tục, bạn đồng ý với Điều khoản sử dụng và Chính sách bảo mật.")}
             </Text>
+            <View style={styles.termsActions}>
+              <Pressable accessibilityRole="link" style={styles.termsTarget} onPress={() => router.push("/terms-of-service")}>
+                <Text style={styles.termsLink}>{i18nT("Điều khoản sử dụng")}</Text>
+              </Pressable>
+              <Pressable accessibilityRole="link" style={styles.termsTarget} onPress={() => router.push("/privacy-policy")}>
+                <Text style={styles.termsLink}>{i18nT("Chính sách bảo mật")}</Text>
+              </Pressable>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

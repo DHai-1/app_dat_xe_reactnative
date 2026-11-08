@@ -7,8 +7,9 @@ const params = useLocalSearchParams<{ id?: string; rideId?: string; returnTo?: s
 const rideId = Number(Array.isArray(params.id ?? params.rideId) ? (params.id ?? params.rideId)?.[0] : params.id ?? params.rideId);
 const query = useRideQuery(rideId);
 const ride = query.data;
-const error = !rideId ? i18nT("Thiếu mã chuyến.") : query.error?.message ?? '';
+const valid = Number.isSafeInteger(rideId) && rideId > 0;
+const error = !valid ? i18nT("Thiếu mã chuyến.") : query.error?.message ?? (query.isSuccess && !ride ? i18nT("Không tìm thấy chuyến đi.") : '');
 const returnTo = Array.isArray(params.returnTo) ? params.returnTo[0] : params.returnTo;
 const goBack = () => router.replace(returnTo === 'notifications' ? '/(tabs)/notifications' : returnTo === 'home' ? '/(tabs)/home' : '/(tabs)/history');
-return { router, params, rideId, ride, error, goBack };
+return { router, params, rideId, ride, error, goBack, refresh: query.refetch, valid };
 }

@@ -1,6 +1,6 @@
 import { getLocale, translate as i18nT } from "@datxe/shared";
 import type { ThemeColors } from "@datxe/ui";
-import { borderRadius, spacing, typography } from "@datxe/ui";
+import { spacing, typography } from "@datxe/ui";
 import { StyleSheet } from "react-native";
 export const money = (amount: number) =>
   i18nT("{0} đ", { "0": new Intl.NumberFormat(getLocale()).format(amount) });
@@ -10,22 +10,21 @@ export const date = (value: string) =>
 
 export const styles = (colors: ThemeColors) =>
   StyleSheet.create({
-    safe: { flex: 1, backgroundColor: colors.surface },
+    safe: { flex: 1, backgroundColor: colors.background },
     content: { padding: spacing.margin, gap: 12, paddingBottom: 28 },
     intro: { ...typography.bodyMd, color: colors.onSurfaceVariant },
     voucher: {
       flexDirection: "row",
       gap: 12,
-      padding: 15,
-      borderRadius: borderRadius.lg,
+      paddingVertical: 16,
+      paddingHorizontal: 0,
+      borderRadius: 24,
       backgroundColor: colors.surfaceContainerLowest,
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
     },
     voucherIcon: {
       width: 44,
       height: 44,
-      borderRadius: 22,
+      borderRadius: 24,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.primaryFixedTint,

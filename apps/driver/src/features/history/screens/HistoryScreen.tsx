@@ -9,6 +9,7 @@ import {
 } from "@datxe/ui";
 import { useRouter } from "expo-router";
 import { useHistory } from "../hooks/useHistory";
+import { statusLabel } from "@/lib/displayLabels";
 export default function HistoryScreen() {
   const themed_s = useThemedStyles(s);
   const q = useHistory(),
@@ -34,7 +35,7 @@ export default function HistoryScreen() {
           }
         >
           <Text style={themed_s.label}>
-            #{trip.id} · {trip.status}
+            #{trip.id} · {statusLabel("ride", trip.status).label}
           </Text>
           <Text style={themed_s.text}>
             {trip.pickupAddress ?? "Chưa có địa chỉ"} →{" "}

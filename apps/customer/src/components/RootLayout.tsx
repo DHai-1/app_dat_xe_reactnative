@@ -3,29 +3,53 @@ import "@/lib/auth";
 import "@/lib/logger";
 import { queryClient } from "@/lib/queryClient";
 import { SettingsProvider } from "@/lib/settings/SettingsProvider";
-import { useLanguage, useScreenMotion, useTheme } from "@datxe/ui";
+import {
+  useLanguage,
+  useScreenMotion,
+  useTheme,
+  usePushForegroundLaunch,
+} from "@datxe/ui";
 import { MaterialIcons } from "@expo/vector-icons";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { usePathname, useRouter, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
-import { BackHandler } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { BackHandler, Platform } from "react-native";
 import { PushBridge } from "./PushBridge";
 
 export default function RootLayout() {
   useLanguage();
 
+  // Expo's floating Tools gear covers the app's back action on development builds.
+  // The development menu remains available through the normal device gesture.
+  useEffect(() => {
+    if (!__DEV__ || Platform.OS === "web") return;
+    let mounted = true;
+    void import("expo-dev-client")
+      .then((menu) => {
+        if (mounted) menu.setToolsButtonVisible(false);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   validateEnv();
   const [loaded, error] = useFonts(MaterialIcons.font);
-  if (!loaded && !error) return null;
+  const foregroundLaunch = usePushForegroundLaunch();
+  if (!foregroundLaunch || (!loaded && !error)) return null;
   return (
-    <QueryClientProvider client={queryClient}>
-      <PushBridge />
-      <SettingsProvider>
-        <ThemedStack />
-      </SettingsProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <PushBridge />
+        <SettingsProvider>
+          <ThemedStack />
+        </SettingsProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -45,6 +69,7 @@ function useHardwareBack() {
     latest.current = { router, pathname };
   }, [pathname, router]);
   useEffect(() => {
+    if (Platform.OS === "web") return;
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
       () => {

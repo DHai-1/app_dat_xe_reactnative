@@ -25,7 +25,7 @@ import {
   type AuthRole,
 } from "@datxe/shared";
 import { Button } from "../components/Button";
-import { borderRadius, spacing, typography } from "../theme/colors";
+import { spacing, typography } from "../theme/colors";
 import { AuthBackButton } from "./AuthBackButton";
 import { OtpCodeInput } from "./OtpCodeInput";
 import { ResendOtpButton } from "./ResendOtpButton";
@@ -36,6 +36,7 @@ type Props = {
   onLogin: () => void;
   onRegister: (phone: string) => void;
   onHome: () => void;
+  onHelp?: () => void;
 };
 
 export function OtpVerificationScreen({
@@ -44,6 +45,7 @@ export function OtpVerificationScreen({
   onLogin,
   onRegister,
   onHome,
+  onHelp,
 }: Props) {
   useLanguage();
 
@@ -146,10 +148,12 @@ export function OtpVerificationScreen({
               }}
               value={code}
             />
-            <ResendOtpButton
-              disabled={loading || resending}
-              onResend={handleResend}
-            />
+            <View style={styles.resend}>
+              <ResendOtpButton
+                disabled={loading || resending}
+                onResend={handleResend}
+              />
+            </View>
           </View>
 
           {error ? (
@@ -161,26 +165,20 @@ export function OtpVerificationScreen({
               {i18nT(notice)}
             </Text>
           ) : null}
+          {onHelp ? <Button variant="ghost" label={i18nT("Chưa nhận được mã?")} onPress={onHelp} /> : null}
+          <Pressable accessibilityRole="button" disabled={loading} onPress={onLogin} style={styles.secondaryAction}>
+            <Text style={styles.secondaryActionText}>{i18nT("Đổi số điện thoại")}</Text>
+          </Pressable>
         </ScrollView>
 
         <View style={styles.footer}>
           <Button
-            disabled={loading || code.replace(/\D/g, "").length !== 6}
+            disabled={loading || resending || code.replace(/\D/g, "").length !== 6}
             label={i18nT("Xác nhận OTP")}
             loading={loading}
             loadingLabel={i18nT("Đang xác thực...")}
             onPress={() => void handleVerify()}
           />
-          <Pressable
-            accessibilityRole="button"
-            disabled={loading}
-            onPress={onLogin}
-            style={styles.secondaryAction}
-          >
-            <Text style={styles.secondaryActionText}>
-              {i18nT("Đổi số điện thoại")}
-            </Text>
-          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -273,8 +271,9 @@ const base_styles = (colors: ThemeColors) =>
     },
     codeBlock: {
       marginTop: spacing.spaceLg + spacing.spaceSm,
-      gap: spacing.spaceSm,
+      gap: spacing.spaceMd,
     },
+    resend: { paddingTop: 36 },
     errorText: {
       ...typography.bodyMd,
       color: colors.error,
@@ -286,12 +285,14 @@ const base_styles = (colors: ThemeColors) =>
       marginTop: spacing.spaceMd,
     },
     footer: {
+      paddingTop: spacing.spaceSm,
+      backgroundColor: colors.background,
       paddingHorizontal: spacing.margin,
       paddingBottom: spacing.spaceSm,
       gap: spacing.spaceXs,
     },
     secondaryAction: {
-      minHeight: 44,
+      minHeight: 48,
       alignItems: "center",
       justifyContent: "center",
     },

@@ -21,6 +21,6 @@ export function useScreenMotion(tab = false) {
     animation: reduced || tab ? 'none' as const : Platform.OS === 'ios' ? 'default' as const : 'fade_from_bottom' as const,
     gestureEnabled: true,
     fullScreenGestureEnabled: false,
-    contentStyle: { backgroundColor: colors.surface },
+    contentStyle: { backgroundColor: colors.background },
   };
 }

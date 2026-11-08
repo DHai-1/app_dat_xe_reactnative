@@ -15,7 +15,7 @@ import { useLanguage } from "../useLanguage";
 import { MotionPressable as Pressable } from "./MotionPressable";
 import { Typography as Text } from "./Typography";
 
-import { borderRadius, spacing, typography } from "../theme/colors";
+import { spacing, typography } from "../theme/colors";
 
 const ITEM_HEIGHT = 44;
 const VISIBLE_ITEMS = 5;
@@ -121,8 +121,10 @@ export function CustomDatePickerModal({
           : new Date();
     const base = value ? startOfDay(value) : fallback;
     const clamped = new Date(base);
-    if (min && clamped.getTime() < min.getTime()) clamped.setTime(min.getTime());
-    if (max && clamped.getTime() > max.getTime()) clamped.setTime(max.getTime());
+    if (min && clamped.getTime() < min.getTime())
+      clamped.setTime(min.getTime());
+    if (max && clamped.getTime() > max.getTime())
+      clamped.setTime(max.getTime());
     return clamped;
   }, [valueTime, minTime, maxTime]);
 
@@ -141,14 +143,16 @@ export function CustomDatePickerModal({
   const years = useMemo(() => {
     const from = min ? min.getFullYear() : initial.getFullYear() - 100;
     const to = max ? max.getFullYear() : new Date().getFullYear();
-    return Array.from({ length: Math.max(to - from + 1, 1) }, (_, i) => from + i);
+    return Array.from(
+      { length: Math.max(to - from + 1, 1) },
+      (_, i) => from + i,
+    );
   }, [minTime, maxTime, initial]);
 
   const months = useMemo(() => Array.from({ length: 12 }, (_, i) => i), []);
 
   const days = useMemo(
-    () =>
-      Array.from({ length: daysInMonth(year, month) }, (_, i) => i + 1),
+    () => Array.from({ length: daysInMonth(year, month) }, (_, i) => i + 1),
     [year, month],
   );
 
@@ -158,7 +162,14 @@ export function CustomDatePickerModal({
   }, [day, days.length]);
 
   const confirm = () => {
-    const selected = new Date(year, month, Math.min(day, days.length), 12, 0, 0);
+    const selected = new Date(
+      year,
+      month,
+      Math.min(day, days.length),
+      12,
+      0,
+      0,
+    );
     onConfirm(selected);
   };
 
@@ -177,7 +188,12 @@ export function CustomDatePickerModal({
           onPress={onCancel}
           style={styles.backdrop}
         />
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.spaceLg }]}>
+        <View
+          style={[
+            styles.sheet,
+            { paddingBottom: insets.bottom + spacing.spaceLg },
+          ]}
+        >
           <View style={styles.header}>
             <Pressable
               accessibilityRole="button"
@@ -252,8 +268,8 @@ const base_styles = (colors: ThemeColors) =>
     sheetRoot: { width: "100%" },
     sheet: {
       backgroundColor: colors.cardSurface,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
       paddingBottom: spacing.spaceLg,
     },
     header: {
@@ -263,8 +279,6 @@ const base_styles = (colors: ThemeColors) =>
       gap: spacing.spaceSm,
       paddingHorizontal: spacing.spaceMd,
       paddingVertical: spacing.px3_5,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.hairline,
     },
     headerAction: {
       minWidth: spacing.iconButtonLg,
@@ -301,7 +315,7 @@ const base_styles = (colors: ThemeColors) =>
       right: spacing.spaceMd,
       top: WHEEL_PADDING,
       height: ITEM_HEIGHT,
-      borderRadius: borderRadius.xl,
+      borderRadius: 24,
       backgroundColor: colors.inputSurface,
     },
     columns: {

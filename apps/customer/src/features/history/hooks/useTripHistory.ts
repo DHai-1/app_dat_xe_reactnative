@@ -12,7 +12,7 @@ export function useTripHistory() {
  const focused=useScreenFocused();
  const [filter,setFilter]=useState<Filter>('all');
  const [refreshing,setRefreshing]=useState(false);
- const status=filter==='completed'?'COMPLETED':filter==='cancelled'?'CANCELLED,NO_DRIVER_FOUND,EXPIRED':undefined;
+ const status=filter==='completed'?'COMPLETED':filter==='cancelled'?'CANCELLED,NO_DRIVER_FOUND,EXPIRED,FAILED_SYSTEM':undefined;
  const query=useInfiniteQuery({queryKey:['customer','getCustomerRides',status],initialPageParam:0,queryFn:({pageParam})=>getCustomerRides(pageParam,20,status),getNextPageParam:last=>last.hasNext?last.page+1:undefined,refetchOnMount:'always',refetchInterval:focused?POLL_INTERVAL_MS:false});
  const unread=useQuery({queryKey:['customer','getUnreadNotificationCount'],queryFn:getUnreadNotificationCount,refetchOnMount:'always',refetchInterval:focused?POLL_INTERVAL_MS:false});
  useRefreshOnFocus(query.refetch);useRefreshOnFocus(unread.refetch);

@@ -63,9 +63,9 @@ export default function RegisterScreen() {
     user,
     router,
     phoneParam,
-    fullName,
+    initialName,
     setFullName,
-    email,
+    initialEmail,
     setEmail,
     dateOfBirth,
     setDateOfBirth,
@@ -105,7 +105,7 @@ export default function RegisterScreen() {
             }}
             placeholder={i18nT("Nhập tên của bạn")}
             style={styles.inputSurface}
-            value={fullName}
+            defaultValue={initialName}
           />
           <Input
             autoCapitalize="none"
@@ -119,7 +119,7 @@ export default function RegisterScreen() {
             }}
             placeholder={i18nT("Nhập email để tăng cường bảo mật")}
             style={styles.inputSurface}
-            value={email}
+            defaultValue={initialEmail}
           />
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>{i18nT("Ngày sinh")}</Text>

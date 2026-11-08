@@ -1,6 +1,6 @@
 import { AuthApiError, translate as i18nT } from "@datxe/shared";
 import type { ThemeColors } from "@datxe/ui";
-import { borderRadius, spacing, typography } from "@datxe/ui";
+import { spacing, typography } from "@datxe/ui";
 import { StyleSheet } from "react-native";
 export function getPhoneError(error: unknown): string {
   if (error instanceof AuthApiError) return error.message;
@@ -28,7 +28,7 @@ export function getPhoneError(error: unknown): string {
 
 export const styles = (colors: ThemeColors) =>
   StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: colors.surface },
+    safeArea: { flex: 1, backgroundColor: colors.background },
     flex: { flex: 1 },
     topBar: { paddingHorizontal: spacing.margin, paddingTop: spacing.spaceXs },
     content: {
@@ -47,7 +47,7 @@ export const styles = (colors: ThemeColors) =>
       gap: spacing.spaceXs,
       paddingHorizontal: spacing.spaceMd,
       paddingVertical: spacing.spaceXs,
-      borderRadius: borderRadius.full,
+      borderRadius: 999,
       backgroundColor: colors.secondaryContainer,
       marginTop: -spacing.spaceSm,
       marginBottom: spacing.spaceMd,
@@ -55,7 +55,7 @@ export const styles = (colors: ThemeColors) =>
     connectedDot: {
       width: spacing.statusDot,
       height: spacing.statusDot,
-      borderRadius: borderRadius.full,
+      borderRadius: 999,
       backgroundColor: colors.success,
     },
     connectedText: { ...typography.labelSm, color: colors.onSecondaryFixed },
@@ -63,8 +63,8 @@ export const styles = (colors: ThemeColors) =>
       width: "100%",
       alignItems: "stretch",
       gap: spacing.spaceMd,
-      padding: spacing.spaceMd,
-      borderRadius: borderRadius.xxl,
+      padding: 16,
+      borderRadius: 24,
     },
     fieldLabel: { ...typography.labelLg, color: colors.onSurface },
     helperText: { ...typography.labelSm, color: colors.onSurfaceVariant },
@@ -80,7 +80,7 @@ export const styles = (colors: ThemeColors) =>
     },
     submitButton: { width: "100%" },
     secondaryAction: {
-      minHeight: 44,
+      minHeight: 48,
       alignItems: "center",
       justifyContent: "center",
       paddingHorizontal: spacing.spaceMd,

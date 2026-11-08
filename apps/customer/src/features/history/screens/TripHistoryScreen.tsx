@@ -1,3 +1,6 @@
+import { HistoryRideListItem } from "../components/HistoryRideListItem";
+import { CustomerNotice } from "@/components/CustomerRideUI";
+import { ActivityIndicator } from "react-native-paper";
 import { CustomerTabBar } from "@/components/CustomerTabBar";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import {
@@ -6,7 +9,7 @@ import {
   HeaderLabeledIconButton,
   ScreenHeader,
 } from "@/components/ScreenHeader";
-import { getLocale, translate as i18nT } from "@datxe/shared";
+import { translate as i18nT } from "@datxe/shared";
 import {
   MotionPressable as Pressable,
   ScreenWrapper as SafeAreaView,
@@ -15,14 +18,9 @@ import {
   useThemeColors,
   useThemedStyles,
 } from "@datxe/ui";
-import { MaterialIcons } from "@expo/vector-icons";
-import { ActivityIndicator, RefreshControl, ScrollView, View } from "react-native";
+import { RefreshControl, ScrollView, View } from "react-native";
 
-import {
-  styles as base_styles,
-  labelForStatus,
-  money,
-} from "../components/TripHistoryScreenParts";
+import { styles as base_styles } from "../components/TripHistoryScreenParts";
 import { useTripHistory } from "../hooks/useTripHistory";
 export default function TripHistoryScreen() {
   useLanguage();
@@ -98,6 +96,8 @@ export default function TripHistoryScreen() {
           ).map(([key, label]) => (
             <Pressable
               key={key}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: filter === key }}
               onPress={() => setFilter(key)}
               style={[styles.filter, filter === key && styles.filterActive]}
             >
@@ -113,7 +113,7 @@ export default function TripHistoryScreen() {
           ))}
         </View>
         {loading ? <ActivityIndicator color={colors.primary} /> : null}
-        {error ? <Text style={styles.error}>{i18nT(error)}</Text> : null}
+        {error ? <CustomerNotice onRetry={() => void refresh()}>{i18nT(error)}</CustomerNotice> : null}
         {!loading && !error && rides.length === 0 ? (
           <EmptyStateCard
             icon="history"
@@ -139,73 +139,26 @@ export default function TripHistoryScreen() {
             }
           />
         ) : null}
-        {rides.map((ride) => (
-          <Pressable
-            key={ride.id}
-            onPress={() =>
-              router.push({
-                pathname: "/ride/[id]",
-                params: {
-                  id: String(ride.id),
-                  rideId: String(ride.id),
-                  returnTo: "history",
-                },
-              })
-            }
-            style={styles.ride}
-          >
-            <View style={styles.rideHeader}>
-              <View style={styles.rideTitleRow}>
-                <MaterialIcons
-                  name="directions-car"
-                  size={22}
-                  color={colors.primary}
-                />
-                <Text style={styles.rideTitle}>
-                  {i18nT("Chuyến #")} {i18nT(ride.id)}
-                </Text>
-              </View>
-              <Text
-                style={[
-                  styles.status,
-                  ride.status === "CANCELLED" && styles.statusCancelled,
-                ]}
-              >
-                {i18nT(labelForStatus[ride.status] ?? ride.status)}
-              </Text>
-            </View>
-            <Text style={styles.meta}>
-              {i18nT(new Date(ride.createdAt).toLocaleString(getLocale()))} ·{" "}
-              {i18nT(
-                ride.type === "INSTANT"
-                  ? "Đặt ngay"
-                  : i18nT("Đón lúc {0}", {
-                      "0": ride.scheduledAt
-                        ? new Date(ride.scheduledAt).toLocaleString(getLocale())
-                        : "theo lịch",
-                    }),
-              )}
-            </Text>
-            <Text style={styles.address}>
-              <Text style={styles.pin}>{i18nT("Đón:")}</Text>
-              {ride.pickupAddress || i18nT("Chưa có địa chỉ")}
-            </Text>
-            <Text style={styles.address}>
-              <Text style={styles.pin}>{i18nT("Đến:")}</Text>
-              {ride.dropoffAddress || i18nT("Chưa có địa chỉ")}
-            </Text>
-            <View style={styles.rideFooter}>
-              <Text style={styles.fare}>
-                {i18nT(money(ride.finalFare ?? ride.estimatedFare))}
-              </Text>
-              <MaterialIcons
-                name="chevron-right"
-                size={23}
-                color={colors.onSurfaceVariant}
+        {rides.length ? (
+          <View style={styles.list}>
+            {rides.map((ride) => (
+              <HistoryRideListItem
+                key={ride.id}
+                ride={ride}
+                onPress={() =>
+                  router.push({
+                    pathname: "/ride/[id]",
+                    params: {
+                      id: String(ride.id),
+                      rideId: String(ride.id),
+                      returnTo: "history",
+                    },
+                  })
+                }
               />
-            </View>
-          </Pressable>
-        ))}
+            ))}
+          </View>
+        ) : null}
         {hasNext ? (
           <Pressable
             disabled={loadingMore}

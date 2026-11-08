@@ -1,6 +1,5 @@
 import { translate as i18nT } from "@datxe/shared";
 import {
-  borderRadius,
   Card,
   MotionPressable as Pressable,
   spacing,
@@ -61,9 +60,8 @@ const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
       gap: spacing.spaceSm,
       paddingHorizontal: spacing.spaceLg,
       paddingVertical: spacing.spaceXl,
-      borderRadius: borderRadius.xl,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.outlineVariant,
+      borderRadius: 24,
+
       backgroundColor: colors.surfaceContainerLowest,
     },
     iconBadge: {
@@ -71,7 +69,7 @@ const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
       height: 56,
       alignItems: "center",
       justifyContent: "center",
-      borderRadius: borderRadius.full,
+      borderRadius: 999,
       backgroundColor: colors.primaryFixedTint,
     },
     title: {
@@ -90,7 +88,7 @@ const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
       justifyContent: "center",
       marginTop: spacing.spaceXs,
       paddingHorizontal: spacing.spaceLg,
-      borderRadius: borderRadius.full,
+      borderRadius: 999,
       backgroundColor: colors.primary,
     },
     actionText: {

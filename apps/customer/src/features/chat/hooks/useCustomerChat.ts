@@ -20,6 +20,7 @@ const [hasMore, setHasMore] = useState(false);
 const [error, setError] = useState('');
 const messageList = useRef<CustomerChatMessage[]>([]);
 const initialized = useRef(false);
+const assignment = useRef<string | null>(null);
 const requestInFlight = useRef(false);
 const applyMessages = (next: CustomerChatMessage[]) => {
     messageList.current = next;
@@ -36,6 +37,14 @@ const refresh = useCallback(async (initial = false) => {
     try {
       const currentRide = await getCustomerRide(rideId);
       setRide(currentRide);
+      const thread = `${rideId}:${currentRide.driverId ?? ""}`;
+      if (assignment.current !== thread) {
+        if (assignment.current !== null) setDraft("");
+        assignment.current = thread;
+        initialized.current = false;
+        applyMessages([]);
+        setHasMore(false);
+      }
       const lastId = messageList.current.at(-1)?.id;
       if (initial || !initialized.current) {
         const page = await getCustomerChatMessages(rideId, { size: 30 });
@@ -69,9 +78,11 @@ useQuery({queryKey:['customer','chatPoll',rideId],queryFn:async()=>{await refres
 const loadOlder = async () => {
     const oldestId = messageList.current[0]?.id;
     if (!oldestId || !hasMore || loadingOlder) return;
+    const thread = assignment.current;
     setLoadingOlder(true);
     try {
       const page = await getCustomerChatMessages(rideId, { beforeId: oldestId, size: 30 });
+      if (thread !== assignment.current) return;
       const older = [...page.messages].reverse();
       const merged = new Map([...older, ...messageList.current].map((message) => [message.id, message]));
       applyMessages([...merged.values()].sort((a, b) => a.id - b.id));

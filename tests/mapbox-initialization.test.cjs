@@ -38,3 +38,23 @@ test('failed native token assignment never creates the telemetry MapView', async
   }, 'pk.test.signature'), /native token assignment failed/);
   assert.equal(telemetryCalled, false);
 });
+
+test('Home viewport covers the 5 km nearby search radius and rounded GPS markers', () => {
+  const viewport = {};
+  const file = path.join(__dirname, '../apps/customer/src/components/map/homeMapViewport.ts');
+  vm.runInNewContext(ts.transpileModule(fs.readFileSync(file, 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS },
+  }).outputText, { exports: viewport });
+
+  const center = { lat: 20.958, lng: 105.803 };
+  const { sw, ne } = viewport.homeMapBounds(center);
+  for (const point of [
+    { lat: 21.0035, lng: 105.803 },
+    { lat: 20.9125, lng: 105.803 },
+    { lat: 20.958, lng: 105.8515 },
+    { lat: 20.958, lng: 105.7545 },
+  ]) {
+    assert.ok(sw[0] < point.lng && point.lng < ne[0]);
+    assert.ok(sw[1] < point.lat && point.lat < ne[1]);
+  }
+});

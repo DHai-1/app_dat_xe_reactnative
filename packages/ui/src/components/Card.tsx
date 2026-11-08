@@ -1,25 +1,19 @@
+import { borderlessFrame } from "../theme/surfaces";
 import { translate as i18nT } from "@datxe/shared";
-import { LinearGradient } from "expo-linear-gradient";
 import type { ReactNode } from "react";
-import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
-import type { ThemeColors } from "../theme/ThemeProvider";
-import { useThemedStyles } from "../theme/ThemeProvider";
+import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
+import { Card as PaperCard } from "react-native-paper";
+import { useThemeColors } from "../theme/ThemeProvider";
 import { useLanguage } from "../useLanguage";
-import { MotionPressable } from "./MotionPressable";
-
-import { borderRadius, shadowStyle, spacing } from "../theme/colors";
 
 export type CardVariant = "surface" | "raised" | "muted";
-
 export type CardProps = {
   children: ReactNode;
-  /**
-   * 'surface' = nền trắng + shadow nhẹ (mặc định).
-   * 'raised' = shadow đậm hơn cho card nổi bật.
-   * 'muted' = nền xám, không shadow.
-   */
+  /** Legacy raised cards now use a tonal surface. */
   variant?: CardVariant;
-  /** Truyền màu gradient để đổi nền card thành LinearGradient. */
+  /** Compact cards can use a smaller shape while the default remains 24dp. */
+  radius?: 16 | 20 | 24;
+  /** Retained for call-site compatibility; surfaces use semantic tones. */
   gradient?: readonly [string, string, ...string[]];
   gradientStart?: { x: number; y: number };
   gradientEnd?: { x: number; y: number };
@@ -31,74 +25,75 @@ export type CardProps = {
 export function Card({
   children,
   variant = "surface",
-  gradient,
-  gradientStart,
-  gradientEnd,
+  radius = 24,
   onPress,
   accessibilityLabel,
   style,
 }: CardProps) {
   useLanguage();
-
-  const styles = useThemedStyles(base_styles);
-
-  const containerStyle = [
-    styles.base,
-    variant === "surface" && styles.surface,
-    variant === "raised" && styles.raised,
-    variant === "muted" && styles.muted,
-    style,
-  ];
-
-  const content = gradient ? (
-    <LinearGradient
-      colors={gradient}
-      end={gradientEnd}
-      start={gradientStart}
-      style={containerStyle}
-    >
-      {children}
-    </LinearGradient>
-  ) : (
-    <View style={containerStyle}>{children}</View>
-  );
-
-  if (!onPress) {
-    return content;
-  }
-
+  const colors = useThemeColors();
+  // Paper separates its outer surface from the content layout. Keep legacy
+  // row/column layouts inside the card while margins and sizing stay outside.
+  const {
+    padding,
+    paddingHorizontal,
+    paddingVertical,
+    paddingTop,
+    paddingBottom,
+    paddingLeft,
+    paddingRight,
+    gap,
+    rowGap,
+    columnGap,
+    flexDirection,
+    alignItems,
+    justifyContent,
+    ...outer
+  } = StyleSheet.flatten(style) ?? {};
   return (
-    <MotionPressable
-      accessibilityLabel={i18nT(accessibilityLabel)}
-      accessibilityRole="button"
+    <PaperCard
+      mode="contained"
       onPress={onPress}
+      accessibilityRole={onPress ? "button" : undefined}
+      accessibilityLabel={i18nT(accessibilityLabel)}
+      style={[
+        {
+          backgroundColor:
+            variant === "muted"
+              ? colors.surfaceContainerHigh
+              : colors.cardSurface,
+        },
+        outer,
+        styles.shape,
+        { borderRadius: radius },
+      ]}
     >
-      {content}
-    </MotionPressable>
+      <PaperCard.Content
+        style={{
+          gap,
+          rowGap,
+          columnGap,
+          flexDirection,
+          alignItems,
+          justifyContent,
+          padding: contentInset(padding) ?? 16,
+          paddingHorizontal: contentInset(paddingHorizontal),
+          paddingVertical: contentInset(paddingVertical),
+          paddingTop: contentInset(paddingTop),
+          paddingBottom: contentInset(paddingBottom),
+          paddingLeft: contentInset(paddingLeft),
+          paddingRight: contentInset(paddingRight),
+        }}
+      >
+        {children}
+      </PaperCard.Content>
+    </PaperCard>
   );
 }
+const styles = StyleSheet.create({
+  shape: { ...borderlessFrame, borderRadius: 24, overflow: "hidden" },
+});
 
-const base_styles = (colors: ThemeColors) =>
-  StyleSheet.create({
-    base: {
-      borderRadius: borderRadius.xxl,
-      padding: spacing.spaceLg,
-      borderWidth: 1,
-      borderColor: colors.transparent,
-    },
-    surface: {
-      backgroundColor: colors.cardSurface,
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      ...shadowStyle,
-    },
-    raised: {
-      backgroundColor: colors.cardSurface,
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      ...shadowStyle,
-    },
-    muted: {
-      backgroundColor: colors.surfaceContainer,
-    },
-  });
+function contentInset(value: ViewStyle["padding"]) {
+  return typeof value === "number" ? Math.max(16, value) : value;
+}

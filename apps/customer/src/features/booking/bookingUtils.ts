@@ -1,8 +1,16 @@
 import { translate as i18nT,getLocale } from '@datxe/shared';
-import type { CustomerVoucher, RideCoordinates, RideEstimate, RideEstimateRequest } from '@datxe/shared';
+import type { CustomerRideDetail, CustomerVoucher, RideCoordinates, RideEstimate, RideEstimateRequest } from '@datxe/shared';
 import type { BookingPlace } from './types';
 
 export const DEFAULT_MAP_CENTER: RideCoordinates = { lat: 21.0285, lng: 105.8542 };
+export function activeRideDestination(ride: Pick<CustomerRideDetail, 'id' | 'status'>) {
+  return {
+    pathname: ride.status === 'PENDING' || ride.status === 'SEARCHING'
+      ? '/ride/find-driver' as const : '/ride/tracking' as const,
+    params: { rideId: String(ride.id) },
+  };
+}
+
 export const money = (value: number) => i18nT("{0} đ", {"0": new Intl.NumberFormat(getLocale()).format(value)});
 export function isCoordinate(point: RideCoordinates): boolean {
   return Number.isFinite(point.lat) && Number.isFinite(point.lng) && Math.abs(point.lat) <= 90 && Math.abs(point.lng) <= 180;

@@ -11,6 +11,7 @@ module.exports = ({ config }) => {
     '@react-native-firebase/auth',
     '@react-native-google-signin/google-signin',
     '@rnmapbox/maps',
+    '@rnmapbox/navigation',
     'expo-status-bar',
     '../../packages/config/plugins/with-short-cmake-paths',
     ['../../packages/config/plugins/with-team-dev-signing', {

@@ -28,11 +28,7 @@ export async function reverseBookingPlace(point: RideCoordinates, signal?: Abort
   return { ...place, id: `pin:${point.lng},${point.lat}`, coordinate: point };
 }
 
-export async function getBookingRoute(pickup: RideCoordinates, dropoff: RideCoordinates, signal?: AbortSignal): Promise<RideCoordinates[]> {
-  const query = new URLSearchParams({ origin: `${pickup.lng},${pickup.lat}`, destination: `${dropoff.lng},${dropoff.lat}` });
-  const result = await request<{ coordinates: RideCoordinates[] }>(`/location/directions?${query.toString()}`, { signal });
-  return result?.coordinates ?? [];
-}
+export { getBookingRoute } from '@/lib/directions';
 export async function createCustomerRide(
   input: CreateCustomerRideRequest,
   idempotencyKey: string,

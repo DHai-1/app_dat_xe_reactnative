@@ -5,12 +5,20 @@ import {
   getToken,
   hasPermission,
   onMessage,
+  onNotificationOpenedApp,
+  getInitialNotification,
+  getIsHeadless,
   onTokenRefresh,
   requestPermission,
   setBackgroundMessageHandler,
   type RemoteMessage,
 } from '@react-native-firebase/messaging';
 import { PermissionsAndroid, Platform } from 'react-native';
+import { parsePushData, type PushEnvelope, type PushRole } from './contracts';
+import { clearPushNotifications, presentPushNotification } from './presentation';
+export * from './contracts';
+export * from './openCoordinator';
+export { initializePushPresentation, presentPushNotification, clearPushNotifications, acknowledgePushOpen, rememberPushOpen, subscribeToLocalPushOpens, dismissOfferNotifications } from './presentation';
 
 /**
  * Đăng ký FCM token của thiết bị với backend.
@@ -32,11 +40,7 @@ export type PushRegistrationAdapter = {
 };
 
 /** Envelope backend gửi trong data message: `{ type, payload, messageId }`. */
-export type PushEnvelope = {
-  type: string;
-  messageId?: string;
-  payload?: unknown;
-};
+export type { PushEnvelope } from './contracts';
 
 const INSTALLATION_ID_KEY = 'datxe.push.installationId';
 const ANDROID_NOTIFICATION_PERMISSION_API = 33;
@@ -46,21 +50,11 @@ const SIGN_OUT_TIMEOUT_MS = 3_000;
 let installationIdPromise: Promise<string> | null = null;
 let signOutCleanup: (() => Promise<void>) | null = null;
 
-/**
- * Expo Go không chứa native module của React Native Firebase Messaging.
- * Giữ phần push là tuỳ chọn để app vẫn chạy được trong Expo Go; FCM sẽ được
- * bật đầy đủ khi chạy development build/release build có native Firebase.
- */
-function getMessagingSafely() {
-  try {
-    return getMessaging();
-  } catch {
-    return null;
-  }
-}
-
 export function isPushSupported(): boolean {
   return Platform.OS === 'android' || Platform.OS === 'ios';
+}
+export async function isPushHeadlessLaunch() {
+  return Platform.OS === 'ios' ? getIsHeadless(getMessaging()) : false;
 }
 
 function pushPlatform(): PushPlatform {
@@ -116,9 +110,7 @@ export async function requestPushPermission(): Promise<boolean> {
       const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
       return result === PermissionsAndroid.RESULTS.GRANTED;
     }
-    const messaging = getMessagingSafely();
-    if (!messaging) return false;
-    const status = await requestPermission(messaging);
+    const status = await requestPermission(getMessaging());
     return status === AuthorizationStatus.AUTHORIZED || status === AuthorizationStatus.PROVISIONAL;
   } catch {
     return false;
@@ -139,9 +131,7 @@ export async function getPushPermissionStatus(): Promise<'granted' | 'denied'> {
       const granted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
       return granted ? 'granted' : 'denied';
     }
-    const messaging = getMessagingSafely();
-    if (!messaging) return 'denied';
-    const status = await hasPermission(messaging);
+    const status = await hasPermission(getMessaging());
     return status === AuthorizationStatus.AUTHORIZED || status === AuthorizationStatus.PROVISIONAL
       ? 'granted'
       : 'denied';
@@ -153,9 +143,7 @@ export async function getPushPermissionStatus(): Promise<'granted' | 'denied'> {
 /** Lấy token FCM hiện tại và lưu lên backend; trả về installationId nếu thành công. */
 export async function syncPushToken(adapter: PushRegistrationAdapter): Promise<string | null> {
   if (!isPushSupported()) return null;
-  const messaging = getMessagingSafely();
-  if (!messaging) return null;
-  const fcmToken = await withTimeout(getToken(messaging), TOKEN_TIMEOUT_MS);
+  const fcmToken = await withTimeout(getToken(getMessaging()), TOKEN_TIMEOUT_MS);
   if (!fcmToken) return null;
   await registerToken(adapter, fcmToken);
   return getInstallationId();
@@ -173,9 +161,7 @@ export async function unregisterPushToken(adapter: PushRegistrationAdapter): Pro
 export function watchPushTokenRefresh(adapter: PushRegistrationAdapter): () => void {
   if (!isPushSupported()) return () => {};
   try {
-    const messaging = getMessagingSafely();
-    if (!messaging) return () => {};
-    return onTokenRefresh(messaging, (token) => {
+    return onTokenRefresh(getMessaging(), (token) => {
       void registerToken(adapter, token).catch(() => undefined);
     });
   } catch {
@@ -187,9 +173,7 @@ export function watchPushTokenRefresh(adapter: PushRegistrationAdapter): () => v
 export function subscribeToPushMessages(listener: (envelope: PushEnvelope) => void): () => void {
   if (!isPushSupported()) return () => {};
   try {
-    const messaging = getMessagingSafely();
-    if (!messaging) return () => {};
-    return onMessage(messaging, (message) => {
+    return onMessage(getMessaging(), (message) => {
       const envelope = parsePushEnvelope(message);
       if (envelope) listener(envelope);
     });
@@ -204,6 +188,7 @@ export function setPushSignOutCleanup(cleanup: (() => Promise<void>) | null): vo
 
 /** Chạy trước khi Firebase signOut để request vẫn còn token đăng nhập. */
 export async function runPushSignOutCleanup(): Promise<void> {
+  await withTimeout(clearPushNotifications(), SIGN_OUT_TIMEOUT_MS).catch(() => {});
   const cleanup = signOutCleanup;
   if (!cleanup) return;
   try {
@@ -217,34 +202,36 @@ export async function runPushSignOutCleanup(): Promise<void> {
 }
 
 export function parsePushEnvelope(message: RemoteMessage): PushEnvelope | null {
-  const raw = message.data?.payload;
-  if (typeof raw !== 'string') return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<PushEnvelope> | null;
-    if (!parsed || typeof parsed !== 'object' || typeof parsed.type !== 'string' || !parsed.type) return null;
-    return {
-      type: parsed.type,
-      messageId: typeof parsed.messageId === 'string' ? parsed.messageId : undefined,
-      payload: parsed.payload,
-    };
-  } catch {
-    return null;
-  }
+  return parsePushData(message.data);
 }
 
 /**
- * Data message khi app ở background/đã thoát. Backend hiện gửi data-only nên handler
- * chỉ giữ app thức dậy; nội dung hiển thị do lớp thông báo của hệ điều hành/app đảm nhận.
+ * Registered by each app entry before Expo Router. Notification+data messages are
+ * displayed by the OS; legacy data-only messages need local presentation.
  */
-export function registerPushBackgroundHandler(): void {
+export function registerPushBackgroundHandler(role?: PushRole): void {
   if (!isPushSupported()) return;
   try {
-    const messaging = getMessagingSafely();
-    if (!messaging) return;
-    setBackgroundMessageHandler(messaging, async () => undefined);
+    setBackgroundMessageHandler(getMessaging(), async message => {
+      const event = parsePushEnvelope(message);
+      if (event && (!event.recipientRole || !role || event.recipientRole === role) && !message.notification) await presentPushNotification(event);
+    });
   } catch {
     // FCM chưa được cấu hình trên máy (ví dụ dev client thiếu google-services.json).
   }
 }
 
-registerPushBackgroundHandler();
+/** Both FCM system notifications and local Expo notifications feed the same tap queue. */
+export function subscribeToRemotePushOpens(listener: (event: PushEnvelope) => void): () => void {
+  if (!isPushSupported()) return () => {};
+  let stopped = false;
+  const consume = (message: RemoteMessage | null) => {
+    const event = message && parsePushEnvelope(message);
+    if (!stopped && event) listener(event);
+  };
+  try {
+    const stop = onNotificationOpenedApp(getMessaging(), consume);
+    void getInitialNotification(getMessaging()).then(consume).catch(() => {});
+    return () => { stopped = true; stop(); };
+  } catch { return () => { stopped = true; }; }
+}

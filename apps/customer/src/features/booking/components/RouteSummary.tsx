@@ -1,16 +1,17 @@
-import { translate as i18nT } from "@datxe/shared";
-import {
-  Card,
-  MotionPressable as Pressable,
-  Typography as Text,
-  useLanguage,
-  useThemeColors,
-  useThemedStyles,
-} from "@datxe/ui";
+import { translate as t } from "@datxe/shared";
+import { MotionPressable as Pressable, Typography as Text, useLanguage, useThemeColors } from "@datxe/ui";
 import { MaterialIcons } from "@expo/vector-icons";
 import { StyleSheet, View } from "react-native";
 import type { BookingPlace } from "../types";
-import { bookingStyles as base_s } from "./bookingStyles";
+
+function shortAddress(place: BookingPlace) {
+  const parts = place.address.split(",").map(part => part.trim()).filter(Boolean);
+  const street = parts.find(part =>
+    /^(?:\d+[\p{L}\d/.-]*\s+)?(?:đường\s|đ\.\s*|phố\s|ngõ\s|ngách\s|quốc lộ\s|ql\.?\s*)/iu.test(part),
+  );
+  return street ?? parts[0] ?? place.name;
+}
+
 export function RouteSummary({
   pickup,
   dropoff,
@@ -22,65 +23,49 @@ export function RouteSummary({
   onPickup?: () => void;
   onDropoff?: () => void;
 }) {
-  const extra = useThemedStyles(extraStyles);
-
-  const colors = useThemeColors();
-
   useLanguage();
-
-  const s = useThemedStyles(base_s);
+  const colors = useThemeColors();
+  const stops = [
+    { place: pickup, label: t("Điểm đón"), color: colors.primary, onPress: onPickup },
+    { place: dropoff, label: t("Điểm đến"), color: colors.error, onPress: onDropoff },
+  ];
 
   return (
-    <Card style={s.card}>
-      {[
-        {
-          place: pickup,
-          label: "ĐIỂM ĐÓN",
-          color: colors.success,
-          onPress: onPickup,
-        },
-        {
-          place: dropoff,
-          label: "ĐIỂM ĐẾN",
-          color: colors.error,
-          onPress: onDropoff,
-        },
-      ].map((item, index) => (
-        <View key={item.label}>
-          {index ? <View style={[s.divider, extra.item1]} /> : null}
+    <View>
+      {stops.map(({ place, label, color, onPress }, index) => {
+        const address = place ? shortAddress(place) : t("Chưa chọn địa điểm");
+        return (
           <Pressable
-            disabled={!item.onPress}
-            accessibilityRole={item.onPress ? "button" : undefined}
-            onPress={item.onPress}
-            style={[s.row, extra.item2]}
+            key={label}
+            disabled={!onPress}
+            accessibilityRole={onPress ? "button" : undefined}
+            accessibilityLabel={`${label}, ${place?.address || address}`}
+            onPress={onPress}
+            style={styles.stop}
           >
-            <MaterialIcons
-              name={index ? "place" : "radio-button-checked"}
-              size={22}
-              color={item.color}
-            />
-            <View style={s.flex}>
-              <Text style={s.label}>{i18nT(item.label)}</Text>
-              <Text style={s.text} numberOfLines={2}>
-                {item.place?.address ?? i18nT("Chưa chọn địa điểm")}
-              </Text>
+            <View style={styles.rail}>
+              <View style={[styles.line, index === 1 && { backgroundColor: colors.outlineVariant }]} />
+              <View style={[styles.dot, { backgroundColor: color }]} />
+              <View style={[styles.line, index === 0 && { backgroundColor: colors.outlineVariant }]} />
             </View>
-            {item.onPress ? (
-              <MaterialIcons
-                name="edit"
-                size={18}
-                color={colors.onSurfaceVariant}
-              />
-            ) : null}
+            <View style={styles.copy}>
+              <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>{label}</Text>
+              <Text style={styles.address} numberOfLines={1}>{address}</Text>
+            </View>
+            {onPress ? <MaterialIcons name="edit" size={18} color={colors.onSurfaceVariant} /> : null}
           </Pressable>
-        </View>
-      ))}
-    </Card>
+        );
+      })}
+    </View>
   );
 }
 
-const extraStyles = () =>
-  StyleSheet.create({
-    item1: { marginLeft: 34 },
-    item2: { paddingVertical: 4 },
-  });
+const styles = StyleSheet.create({
+  stop: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: 12 },
+  rail: { alignSelf: "stretch", width: 12, alignItems: "center" },
+  line: { width: 1, flex: 1 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  copy: { flex: 1, paddingVertical: 4 },
+  label: { fontSize: 12, lineHeight: 16 },
+  address: { fontSize: 15, lineHeight: 20, fontWeight: "600" },
+});

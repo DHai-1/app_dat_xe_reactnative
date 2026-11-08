@@ -1,29 +1,20 @@
+import { borderlessFrame } from "../theme/surfaces";
 import { translate as i18nT } from "@datxe/shared";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
-  ActivityIndicator,
   StyleSheet,
+  View,
   type StyleProp,
   type TextStyle,
   type ViewStyle,
 } from "react-native";
-import type { ThemeColors } from "../theme/ThemeProvider";
-import { useThemeColors, useThemedStyles } from "../theme/ThemeProvider";
+import { ActivityIndicator, Text, TouchableRipple } from "react-native-paper";
+import { fontSize } from "../theme/colors";
+import { useThemeColors } from "../theme/ThemeProvider";
 import { useLanguage } from "../useLanguage";
-import { MotionPressable } from "./MotionPressable";
-import { Typography as Text } from "./Typography";
-
-import { borderRadius, fontSize, spacing, typography } from "../theme/colors";
 
 type IconName = keyof typeof MaterialIcons.glyphMap;
 
-/**
- * Kiểu nút theo hệ Urban Pulse:
- * - primary: nền coral đặc, chữ trắng, nhấn đậm hơn khi pressed.
- * - secondary: nền xám nhạt, chữ than.
- * - ghost: trong suốt, chữ coral.
- * - tertiary: nền emerald (hành động phụ mang tính xác nhận).
- */
 export type ButtonVariant = "primary" | "secondary" | "tertiary" | "ghost";
 
 export type ButtonIconPosition = "leading" | "trailing";
@@ -73,135 +64,111 @@ export function Button({
   style,
   textStyle,
 }: ButtonProps) {
-  const colors = useThemeColors();
   useLanguage();
-
-  const styles = useThemedStyles(base_styles);
-
+  const colors = useThemeColors();
   const isDisabled = disabled || loading;
-  const neutral = isDisabled && dimWhenDisabled;
+  const requestedHeight = StyleSheet.flatten(style)?.height;
+  const fixedHeight =
+    typeof requestedHeight === "number" ? requestedHeight : undefined;
   const contentColor =
     customContentColor ??
-    (neutral
+    (isDisabled && dimWhenDisabled
       ? colors.disabledText
       : variant === "primary"
-        ? colors.onPrimaryContainer
-        : variant === "secondary"
-          ? colors.onSurface
-          : variant === "tertiary"
-            ? colors.onTertiaryContainer
+        ? colors.onPrimary
+        : variant === "tertiary"
+          ? colors.onTertiaryContainer
+          : variant === "secondary"
+            ? colors.onSecondaryContainer
             : colors.primary);
-  const showSpinner = loading && !loadingIcon;
-  const leadingIcon = loading
-    ? loadingIcon
-    : iconPosition === "leading"
-      ? icon
-      : undefined;
-  const trailingIcon = loading
-    ? undefined
-    : iconPosition === "trailing"
-      ? icon
-      : undefined;
-
+  const buttonColor =
+    isDisabled && dimWhenDisabled
+      ? colors.disabled
+      : variant === "primary"
+        ? colors.primary
+        : variant === "secondary"
+          ? colors.secondaryContainer
+          : variant === "tertiary"
+            ? colors.tertiaryContainer
+            : colors.transparent;
+  const visibleIcon = loading ? loadingIcon : icon;
   return (
-    <MotionPressable
-      accessibilityLabel={i18nT(accessibilityLabel ?? label)}
-      accessibilityRole="button"
-      disabled={isDisabled}
+    <TouchableRipple
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.container,
-        variant === "primary" && styles.primary,
-        variant === "secondary" && styles.secondary,
-        variant === "tertiary" && styles.tertiary,
-        variant === "ghost" && styles.ghost,
-        pressed && !isDisabled && variant === "primary" && styles.primaryPressed,
-        pressed &&
-          !isDisabled &&
-          variant === "secondary" &&
-          styles.secondaryPressed,
-        pressed && !isDisabled && variant === "ghost" && styles.ghostPressed,
-        pressed && !isDisabled && variant === "tertiary" && styles.tertiaryPressed,
-        neutral && styles.neutral,
-        isDisabled && !neutral && styles.faded,
+      disabled={isDisabled}
+      accessibilityRole="button"
+      accessibilityLabel={i18nT(accessibilityLabel ?? label)}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      rippleColor={
+        variant === "primary" ? colors.onPrimary20 : colors.primaryTintStrong
+      }
+      style={[
+        styles.button,
+        { backgroundColor: buttonColor },
+        isDisabled && !dimWhenDisabled && { opacity: 0.5 },
         style,
+        styles.shape,
       ]}
     >
-      {showSpinner ? (
-        <ActivityIndicator color={contentColor} size="small" />
-      ) : null}
-      {leadingIcon ? (
-        <MaterialIcons
-          color={contentColor}
-          name={leadingIcon}
-          size={iconSize}
-        />
-      ) : null}
-      <Text
-        numberOfLines={numberOfLines}
-        style={[styles.label, { color: contentColor }, textStyle]}
+      <View
+        style={[
+          styles.content,
+          fixedHeight !== undefined && {
+            height: fixedHeight,
+            minHeight: fixedHeight,
+            paddingVertical: 0,
+          },
+          {
+            flexDirection:
+              iconPosition === "trailing" && !loading ? "row-reverse" : "row",
+          },
+        ]}
       >
-        {i18nT(loading && loadingLabel ? loadingLabel : label)}
-      </Text>
-      {trailingIcon ? (
-        <MaterialIcons
-          color={contentColor}
-          name={trailingIcon}
-          size={iconSize}
-        />
-      ) : null}
-    </MotionPressable>
+        {loading && !loadingIcon ? (
+          <ActivityIndicator size="small" color={contentColor} />
+        ) : null}
+        {visibleIcon ? (
+          <MaterialIcons
+            name={visibleIcon}
+            size={iconSize}
+            color={contentColor}
+          />
+        ) : null}
+        <Text
+          variant="labelLarge"
+          numberOfLines={numberOfLines}
+          style={[styles.label, { color: contentColor }, textStyle]}
+        >
+          {i18nT(loading && loadingLabel ? loadingLabel : label)}
+        </Text>
+      </View>
+    </TouchableRipple>
   );
 }
-
-const base_styles = (colors: ThemeColors) =>
-  StyleSheet.create({
-    container: {
-      width: "100%",
-      minHeight: spacing.buttonPillHeight,
-      paddingVertical: spacing.px2,
-      borderRadius: borderRadius.xl,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: spacing.spaceSm,
-      paddingHorizontal: spacing.px5,
-      borderWidth: 1,
-      borderColor: colors.transparent,
-    },
-    primary: {
-      backgroundColor: colors.primaryContainer,
-    },
-    primaryPressed: {
-      backgroundColor: colors.primaryPressed,
-    },
-    secondary: {
-      backgroundColor: colors.surfaceContainerLowest,
-      borderColor: colors.outlineVariant,
-    },
-    secondaryPressed: {
-      backgroundColor: colors.surfaceContainer,
-    },
-    tertiary: {
-      backgroundColor: colors.tertiaryContainer,
-    },
-    tertiaryPressed: {
-      backgroundColor: colors.tertiary,
-    },
-    ghost: {
-      backgroundColor: colors.transparent,
-    },
-    ghostPressed: {
-      backgroundColor: colors.primaryTint,
-    },
-    neutral: {
-      backgroundColor: colors.disabled,
-    },
-    faded: {
-      opacity: spacing.disabledOpacity,
-    },
-    label: {
-      ...typography.labelLg,
-      letterSpacing: 0.1,
-    },
-  });
+const styles = StyleSheet.create({
+  button: { width: "100%" },
+  // Insets belong to the inner content; caller padding must not inflate the frame.
+  shape: {
+    ...borderlessFrame,
+    borderRadius: 999,
+    overflow: "hidden",
+    padding: 0,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+  },
+  content: {
+    minHeight: 48,
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "500",
+    letterSpacing: 0.1,
+    flexShrink: 1,
+    textAlign: "center",
+  },
+});

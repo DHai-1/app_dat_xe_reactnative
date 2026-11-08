@@ -1,6 +1,6 @@
 import { useSessionStore } from "@/lib/store";
 import { getLanguage, setLanguage } from "@datxe/shared";
-import { ThemeProvider, type ThemeMode } from "@datxe/ui";
+import { AppThemeProvider as ThemeProvider, type ThemeMode } from "@datxe/ui";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   createContext,

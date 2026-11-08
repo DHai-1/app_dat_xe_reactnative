@@ -1,3 +1,4 @@
+import { ActivityIndicator } from "react-native-paper";
 import type { CustomerVoucher } from "@datxe/shared";
 import { getLocale, translate as i18nT } from "@datxe/shared";
 import type { ThemeColors } from "@datxe/ui";
@@ -10,13 +11,7 @@ import {
   useThemedStyles,
 } from "@datxe/ui";
 import { MaterialIcons } from "@expo/vector-icons";
-import {
-  ActivityIndicator,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Modal, ScrollView, StyleSheet, View } from "react-native";
 
 import { money, voucherUnavailable } from "../bookingUtils";
 import { bookingStyles as base_s } from "./bookingStyles";
@@ -217,7 +212,7 @@ const extraStyles = (colors: ThemeColors) =>
       backgroundColor: colors.scrim60,
       justifyContent: "flex-end",
     },
-    item2: { flex: 1, minHeight: 40 },
+    item2: { flex: 1, minHeight: 48 },
     item3: { maxHeight: "85%" },
     item4: { gap: 12, paddingBottom: 12 },
     item5: { opacity: 0.5 },

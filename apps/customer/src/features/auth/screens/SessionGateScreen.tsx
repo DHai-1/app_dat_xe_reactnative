@@ -1,10 +1,12 @@
+import { translate as t } from "@datxe/shared";
+import { ActivityIndicator } from "react-native-paper";
 import { Typography as Text, useLanguage, useThemeColors, useThemedStyles } from "@datxe/ui";
 import { Redirect } from "expo-router";
-import { ActivityIndicator, Image, View } from "react-native";
+import { Image, View } from "react-native";
 import { styles as base_styles } from "../components/SessionGateScreenParts";
 import { useSessionGate } from "../hooks/useSessionGate";
 
-/** Logo PtitGo dùng cho splash trong app (asset đã bo góc sẵn). */
+/** Customer artwork supplied with the new PtitGo identity. */
 const brandLogo = require("../../../../assets/images/brand-logo.png");
 
 export default function Index() {
@@ -26,9 +28,9 @@ export default function Index() {
         source={brandLogo}
         style={styles.logo}
       />
-      <Text style={styles.tagline}>FAST • SAFE • RELIABLE</Text>
       <View style={styles.footer}>
-        <ActivityIndicator color={colors.onPrimaryContainer} size="small" />
+        <ActivityIndicator color={colors.primary} size="small" />
+        <Text accessibilityLiveRegion="polite" style={styles.tagline}>{t("Khôi phục phiên đăng nhập")}</Text>
       </View>
     </View>
   );

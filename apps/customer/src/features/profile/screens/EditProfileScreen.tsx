@@ -1,3 +1,4 @@
+import { ActivityIndicator } from "react-native-paper";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import type { CustomerProfile } from "@datxe/shared";
 import { translate as i18nT } from "@datxe/shared";
@@ -7,6 +8,7 @@ import {
   localizedAlert,
   MotionPressable as Pressable,
   ScreenWrapper as SafeAreaView,
+  SectionHeading,
   Typography as Text,
   ThemedTextInput as TextInput,
   fontSize,
@@ -16,9 +18,8 @@ import {
 } from "@datxe/ui";
 import { MaterialIcons } from "@expo/vector-icons";
 import { usePreventRemove, useRouter } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -56,7 +57,11 @@ function toIsoDate(display: string): string {
 function toDateValue(display: string): Date | null {
   const match = display.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (!match) return null;
-  const date = new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+  const date = new Date(
+    Number(match[3]),
+    Number(match[2]) - 1,
+    Number(match[1]),
+  );
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
@@ -110,9 +115,12 @@ function ProfileForm({ initial }: { initial: CustomerProfile }) {
     gender: initial.gender ?? "",
   };
   const [draft, setDraft] = useState(seed);
+  // Track only the dirty flag in React; the editor keeps the composed name.
+  const nameDraft = useRef(seed.name);
+  const [nameDirty, setNameDirty] = useState(false);
   const [birthDatePickerVisible, setBirthDatePickerVisible] = useState(false);
   const [saved, setSaved] = useState(false);
-  const dirty = Object.keys(seed).some(
+  const dirty = nameDirty || Object.keys(seed).some(
     (key) =>
       draft[key as keyof typeof draft] !== seed[key as keyof typeof seed],
   );
@@ -137,7 +145,11 @@ function ProfileForm({ initial }: { initial: CustomerProfile }) {
   const submit = async () => {
     if (save.isPending) return;
     try {
-      await save.mutateAsync({ ...draft, birthDate: toIsoDate(draft.birthDate) });
+      await save.mutateAsync({
+        ...draft,
+        name: nameDraft.current,
+        birthDate: toIsoDate(draft.birthDate),
+      });
       setSaved(true);
       localizedAlert(
         i18nT("Đã lưu thông tin"),
@@ -160,7 +172,7 @@ function ProfileForm({ initial }: { initial: CustomerProfile }) {
         </Text>
 
         <View style={s.group}>
-          <Text style={s.section}>{i18nT("THÔNG TIN CÁ NHÂN")}</Text>
+          <SectionHeading title="Thông tin cá nhân" />
           <View style={s.card}>
             <View style={s.field}>
               <Text style={s.label}>{i18nT("Họ và tên")}</Text>
@@ -170,14 +182,15 @@ function ProfileForm({ initial }: { initial: CustomerProfile }) {
                   autoCapitalize="words"
                   editable={!save.isPending}
                   maxLength={255}
-                  onChangeText={(value) =>
-                    setDraft((previous) => ({ ...previous, name: value }))
-                  }
+                  onChangeText={(value) => {
+                    nameDraft.current = value;
+                    setNameDirty(value !== seed.name);
+                  }}
                   placeholder={i18nT("Nhập họ và tên")}
                   placeholderTextColor={c.onSurfaceVariant}
                   selectionColor={c.primary}
                   style={[s.input, s.inputPadded]}
-                  value={draft.name}
+                  defaultValue={draft.name}
                 />
               </View>
             </View>
@@ -262,7 +275,7 @@ function ProfileForm({ initial }: { initial: CustomerProfile }) {
         </View>
 
         <View style={s.group}>
-          <Text style={s.section}>{i18nT("SỐ ĐIỆN THOẠI")}</Text>
+          <SectionHeading title="Số điện thoại" />
           <View style={s.card}>
             <View style={s.phoneRow}>
               <Text style={s.title}>
@@ -292,9 +305,7 @@ function ProfileForm({ initial }: { initial: CustomerProfile }) {
         ) : null}
       </ScrollView>
 
-      <View
-        style={[s.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}
-      >
+      <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <Button
           disabled={!dirty || saved}
           label={i18nT(saved ? "Đã lưu" : "Lưu thay đổi")}

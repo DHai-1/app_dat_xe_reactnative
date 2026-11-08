@@ -18,10 +18,10 @@ async function getCustomerVouchers(): Promise<CustomerVoucher[]> {
   return (await request<CustomerVoucher[]>('/customer/vouchers')) as CustomerVoucher[];
 }
 
-async function cancelCustomerRide(id: number, reason: string): Promise<RideStatusResponse> {
+async function cancelCustomerRide(id: number, reason?: string): Promise<RideStatusResponse> {
   return (await request<RideStatusResponse>(`/customer/rides/${id}/cancel`, {
     method: 'POST',
-    body: { reason },
+    body: reason === undefined ? {} : { reason },
   })) as RideStatusResponse;
 }
 

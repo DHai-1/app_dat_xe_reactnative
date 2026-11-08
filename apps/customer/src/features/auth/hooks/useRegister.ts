@@ -1,14 +1,17 @@
 import { translate as i18nT , AuthApiError,authenticateWithBackend,getAuthFullNameValidationError,getFirebaseUser,registerWithBackend } from '@datxe/shared';
 import { useLocalSearchParams,useRouter } from 'expo-router';
-import { useEffect,useState } from 'react';
+import { useEffect,useRef,useState } from 'react';
 import { getCustomerProfile,updateCustomerProfile } from '../api';
 import { isPastIsoDate } from '../components/RegisterScreenParts';
 export function useRegister() {
 const router = useRouter();
 const [user] = useState(() => getFirebaseUser());
 const { phone: phoneParam } = useLocalSearchParams<{ phone?: string }>();
-const [fullName, setFullName] = useState(user?.displayName ?? '');
-const [email, setEmail] = useState(user?.email ?? '');
+// Read raw editor text at submit time, after the keyboard has composed it.
+const nameDraft = useRef(user?.displayName ?? '');
+const setFullName = (text: string) => { nameDraft.current = text; };
+const emailDraft = useRef(user?.email ?? '');
+const setEmail = (text: string) => { emailDraft.current = text; };
 const [dateOfBirth, setDateOfBirth] = useState('');
 const [gender, setGender] = useState('');
 const [loading, setLoading] = useState(false);
@@ -18,6 +21,8 @@ useEffect(() => {
     else if (!user.phoneNumber) router.replace('/(auth)/add-phone-number' as never);
   }, [router, user]);
 const submit = async () => {
+    const fullName = nameDraft.current;
+    const email = emailDraft.current;
     const nameError = getAuthFullNameValidationError(fullName);
     if (nameError) {
       setError(nameError);
@@ -68,5 +73,5 @@ const submit = async () => {
     }
   };
 
-return { user, router, phoneParam, fullName, setFullName, email, setEmail, dateOfBirth, setDateOfBirth, gender, setGender, loading, error, setError, submit };
+return { user, router, phoneParam, initialName: user?.displayName ?? '', setFullName, initialEmail: user?.email ?? '', setEmail, dateOfBirth, setDateOfBirth, gender, setGender, loading, error, setError, submit };
 }

@@ -24,5 +24,5 @@ const remove = (vehicle: CustomerVehicle) => localizedAlert(i18nT("Xóa phương
       finally { setDeletingId(null); }
     })(); } },
   ]);
-return { router, vehicles, loading, error, deletingId, remove };
+return { router, vehicles, loading, error, deletingId, remove, refresh: query.refetch };
 }

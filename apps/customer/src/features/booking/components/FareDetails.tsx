@@ -1,141 +1,65 @@
-import type { RideEstimate } from "@datxe/shared";
-import { translate as i18nT } from "@datxe/shared";
-import type { ThemeColors } from "@datxe/ui";
-import {
-  Card,
-  MotionPressable as Pressable,
-  Typography as Text,
-  useLanguage,
-  useThemeColors,
-  useThemedStyles,
-} from "@datxe/ui";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { CustomerNotice, customerType } from "@/components/CustomerRideUI";
+import { getLocale, translate as t, type RideEstimate } from "@datxe/shared";
+import { Card, Typography as Text, useLanguage, useThemeColors, useThemedStyles } from "@datxe/ui";
+import { StyleSheet, View } from "react-native";
+import { ActivityIndicator, List } from "react-native-paper";
 import { minimumFareAdjustment, money } from "../bookingUtils";
-import { bookingStyles as base_s } from "./bookingStyles";
-function PriceRow({
-  label,
-  value,
-  strong = false,
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-}) {
-  const extra = useThemedStyles(extraStyles);
+import { bookingStyles } from "./bookingStyles";
 
-  useLanguage();
-
-  const s = useThemedStyles(base_s);
-  return (
-    <View style={s.between}>
-      <Text style={[s.text, s.flex, strong && extra.item1]}>
-        {i18nT(label)}
-      </Text>
-      <Text style={[s.text, strong && extra.item2]}>{i18nT(value)}</Text>
-    </View>
-  );
-}
-export function FareDetails({
-  estimate,
-  loading,
-  error,
-  retry,
-}: {
+export function FareDetails({ estimate, loading, error, retry }: {
   estimate?: RideEstimate;
   loading: boolean;
   error: string;
   retry: () => void;
 }) {
   useLanguage();
+  const c = useThemeColors();
+  const s = useThemedStyles(bookingStyles);
+  if (error) return <CustomerNotice onRetry={retry}>{t(error)}</CustomerNotice>;
+  if (loading || !estimate) return (
+    <Card style={s.card}>
+      {loading ? <View style={s.row}>
+        <ActivityIndicator color={c.primary} />
+        <Text style={s.muted}>{t("Đang cập nhật giá chuyến…")}</Text>
+      </View> : <Text style={s.muted}>{t("Chưa có giá")}</Text>}
+    </Card>
+  );
 
-  const colors = useThemeColors();
-
-  const s = useThemedStyles(base_s);
-
-  const adjustment = estimate ? minimumFareAdjustment(estimate) : 0;
+  const fees = [
+    { label: "Giá mở đầu", value: estimate.baseFare },
+    { label: "Cước quãng đường", value: estimate.distanceFare },
+    ...[
+      { label: "Phí chờ", value: estimate.waitingFare },
+      { label: "Phụ phí ban đêm", value: estimate.nightSurcharge },
+      { label: "Phí tài xế quay về", value: estimate.returnFee },
+      { label: "Điều chỉnh cước tối thiểu", value: minimumFareAdjustment(estimate) },
+    ].filter(({ value }) => value > 0),
+    ...(estimate.discountAmount > 0 ? [{ label: "Ưu đãi", value: -estimate.discountAmount }] : []),
+  ];
   return (
     <Card style={s.card}>
-      <Text style={s.section}>{i18nT("Chi tiết giá")}</Text>
-      {loading ? (
-        <View style={s.row}>
-          <ActivityIndicator color={colors.primary} />
-          <Text style={s.muted}>{i18nT("Đang cập nhật giá chuyến…")}</Text>
-        </View>
-      ) : null}
-      {error ? (
-        <View style={s.errorBox}>
-          <Text accessibilityRole="alert" style={s.error}>
-            {i18nT(error)}
-          </Text>
-          <Pressable onPress={retry}>
-            <Text style={s.link}>{i18nT("Thử lấy giá lại")}</Text>
-          </Pressable>
-        </View>
-      ) : null}
-      {estimate && !error ? (
-        <>
-          <Text style={s.muted}>
-            {i18nT(estimate.distanceKm.toFixed(1))} {i18nT("km · Khoảng")}{" "}
-            {i18nT(estimate.estimatedDurationMinutes)} {i18nT("phút")}
-          </Text>
-          {estimate.route?.limitation ? (
-            <Text style={s.muted}>{i18nT(estimate.route.limitation)}</Text>
-          ) : null}
-          <PriceRow
-            label={i18nT("Giá mở đầu")}
-            value={money(estimate.baseFare)}
-          />
-          <PriceRow
-            label={i18nT("Cước quãng đường")}
-            value={money(estimate.distanceFare)}
-          />
-          {estimate.waitingFare > 0 ? (
-            <PriceRow
-              label={i18nT("Phí chờ")}
-              value={money(estimate.waitingFare)}
-            />
-          ) : null}
-          {estimate.nightSurcharge > 0 ? (
-            <PriceRow
-              label={i18nT("Phụ phí ban đêm")}
-              value={money(estimate.nightSurcharge)}
-            />
-          ) : null}
-          {estimate.returnFee > 0 ? (
-            <PriceRow
-              label={i18nT("Phí tài xế quay về")}
-              value={money(estimate.returnFee)}
-            />
-          ) : null}
-          {adjustment > 0 ? (
-            <PriceRow
-              label={i18nT("Điều chỉnh cước tối thiểu")}
-              value={money(adjustment)}
-            />
-          ) : null}
-          {estimate.discountAmount > 0 ? (
-            <PriceRow
-              label={i18nT("Ưu đãi")}
-              value={`−${money(estimate.discountAmount)}`}
-            />
-          ) : null}
-          <View style={s.divider} />
-          <PriceRow
-            label={i18nT("Tổng thanh toán")}
-            value={money(estimate.payableFare)}
-            strong
-          />
-        </>
-      ) : null}
-      <Text style={s.muted}>
-        {i18nT("Giá được tính theo lộ trình và bảng giá đang áp dụng.")}
+      <Text style={s.label}>{t("Quãng đường và thời gian dự kiến")}</Text>
+      <Text style={customerType.metric}>
+        {estimate.distanceKm.toLocaleString(getLocale(), { maximumFractionDigits: 1 })} km · {estimate.estimatedDurationMinutes} {t("phút")}
       </Text>
+      {estimate.route?.limitation ? <Text style={s.muted}>{t(estimate.route.limitation)}</Text> : null}
+      <List.Accordion title={t("Chi tiết giá")} style={styles.accordion} theme={{ colors: { background: c.transparent } }}>
+        <View style={styles.breakdown}>
+          {fees.map(({ label, value }) => (
+            <View key={label} style={s.between}>
+              <Text style={[s.text, styles.label]}>{t(label)}</Text>
+              <Text style={[s.text, customerType.numbers]}>{value < 0 ? `−${money(-value)}` : money(value)}</Text>
+            </View>
+          ))}
+          <Text style={s.muted}>{t("Giá được tính theo lộ trình và bảng giá đang áp dụng.")}</Text>
+        </View>
+      </List.Accordion>
     </Card>
   );
 }
 
-const extraStyles = (colors: ThemeColors) =>
-  StyleSheet.create({
-    item1: { fontWeight: "700" },
-    item2: { fontWeight: "700", color: colors.primary },
-  });
+const styles = StyleSheet.create({
+  accordion: { minHeight: 48 },
+  breakdown: { gap: 8 },
+  label: { flexShrink: 1 },
+});

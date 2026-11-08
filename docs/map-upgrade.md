@@ -15,7 +15,7 @@ Backend lấy loại xe từ phương tiện thuộc khách; không tin loại x
 
 ## Routing và một tuyến dùng chung
 
-- Goong Direction V2 xác nhận `vehicle=car` và tọa độ `lat,lng`. Đã thử key backend thật thành công. Tài liệu Direction liệt kê `bike` nhưng mô tả xe đạp, chưa đủ chắc để ánh xạ MOTORCYCLE; không tự đoán. Xe máy dùng Mapbox `driving`, ô tô fallback dùng profile cấu hình `driving-traffic`. Đây là tuyến ô tô gần đúng cho xe máy, chưa bảo đảm các hạn chế riêng tại Việt Nam. Goong lỗi cũng fallback Mapbox; response có provider/limitation thực tế.
+- Backend chỉ dùng Goong. Ô tô dùng Direction V2 với `vehicle=car`. Xe máy dùng Direction V1 với `vehicle=bike`. Lỗi Goong trả `ROUTE_UNAVAILABLE`; các chuyến đã lưu giữ nguyên tuyến lịch sử.
 - Giữ nguyên tọa độ gửi routing. API xem trước không làm tròn tọa độ; cache key hiện dùng tọa độ nguyên vẹn.
 - Flyway V12 thêm `ride_route_quotes` và các cột tuyến trên `rides`; V13 thêm `pickup_note`. Chạy backend để Flyway áp dụng; không sửa migration cũ.
 - Báo giá đầu tiên lấy tuyến và lưu snapshot 20 phút, khóa theo fingerprint khách/xe/loại xe/tọa độ trong transaction để tránh gọi trùng đồng thời. Các lần đổi ưu đãi/refresh/create tái dùng snapshot. `routeQuoteId` từ **estimate** giúp tạo chuyến từ chối snapshot hết hạn/không khớp thay vì đổi tuyến âm thầm. Không gửi id `ride:...` của tuyến chuyến đã tạo làm quote id.
@@ -30,14 +30,16 @@ Backend lấy loại xe từ phương tiện thuộc khách; không tin loại x
 - `apps/driver/.env`: `EXPO_PUBLIC_DRIVER_LOCATION_INTERVAL_MS=4000` là khoảng tối thiểu giữa mẫu gửi. Không đặt lớn hơn ngưỡng mất tín hiệu. Các biến này không chứa key dịch vụ.
 - Driver thêm `expo-task-manager` và config plugin expo-location cho Android foreground service/background location và iOS background location. Phải tạo/cài development build mới; reload JS trên APK cũ không đủ. Driver cần cấp quyền vị trí khi dùng app và vị trí nền. Nếu từ chối nền, app dùng foreground và thông báo giới hạn. OS force-stop/quyền nền bị thu hồi vẫn có thể ngừng gửi; khách hiển thị mất tín hiệu.
 
-## Điểm đón và chỉ đường ngoài
+## Điểm đón và chỉ đường trong app
 
 Khách nhập pickupNote riêng, chỉnh vị trí bằng cách kéo ghim hoặc dịch bản đồ. Driver nhận note ở offer, chuyến đang chạy và biên bản. Màn hình driver dùng API thật để nhận/bỏ qua yêu cầu, chuyển trạng thái và gửi biên bản (4 góc bắt buộc, đồng hồ tùy chọn); khách vẫn phải xác nhận biên bản theo backend.
 
-Nút “Mở chỉ đường” dùng Google Maps URL tới tọa độ, mở app nếu cài, nếu không dùng trình duyệt. Tuyến trong app bản đồ ngoài do ứng dụng đó tính; không dùng tuyến ngoài để thay giá/tuyến đã lưu. Không tích hợp turn-by-turn bên trong PtitGo.
+Nút “Mở chỉ đường” tải vị trí thiết bị và gọi `/api/location/directions` cho đúng điểm đón hoặc trả và loại xe. Driver hiển thị tuyến, khoảng cách, thời gian dự kiến và các bước Goong trả về trong thanh kéo. Nút cập nhật lấy lại vị trí để tính tuyến mới. Đây là chỉ đường theo từng bước trên màn hình, chưa có giọng nói hoặc tự tính lại liên tục khi xe di chuyển.
+
+Hai app đọc `EXPO_PUBLIC_GOONG_MAP_KEY` để tải bản đồ. Backend đọc `GOONG_API_KEY` để gọi REST. Các file `.env` phải nằm ngoài Git. Sau khi thay SDK bản đồ, build lại development client từ cấu hình Expo.
 
 ## Kiểm tra
 
 `npm run check`; test backend `*PricingRideQuoteTests`, `*VehicleRoutingTests`, `*RideRouteSnapshotTests`, `*DriverLocationPolicyTests`, `*RidePickupNoteTests`, `*PlaceSearchTests`. Migration V12/V13 được kiểm tra trong schema thử nghiệm và rollback. Cần kiểm thử GPS foreground/background trên hai điện thoại thật; unit test và APK build không thay thế thử nghiệm này.
 
-Tài liệu: [Goong Direction](https://help.goong.io/kb/rest-api-v2/directions-rest-api-v2/directions-v2/), [Expo Location 58](https://docs.expo.dev/versions/v58.0.0/sdk/location/), [Google Maps URLs](https://developers.google.com/maps/documentation/urls/get-started).
+Tài liệu: [Goong Direction](https://help.goong.io/kb/rest-api-v2/directions-rest-api-v2/directions-v2/), [Expo Location 58](https://docs.expo.dev/versions/v58.0.0/sdk/location/), [Goong và MapLibre trên React Native](https://help.goong.io/kb/app/react-native/tich-hop-maplibre-tren-nen-ban-do-goong-trong-react-native/).

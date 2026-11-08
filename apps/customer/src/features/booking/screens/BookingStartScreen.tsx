@@ -1,5 +1,6 @@
+import { ActivityIndicator } from "react-native-paper";
 import { useLanguage, useThemedStyles } from "@datxe/ui";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useBookingStart } from "../hooks/useBookingStart";
 export default function BookingStartScreen() {
   const extra = useThemedStyles(extraStyles);

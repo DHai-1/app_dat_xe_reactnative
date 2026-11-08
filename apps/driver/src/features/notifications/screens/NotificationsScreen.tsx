@@ -7,13 +7,19 @@ import {
   useThemedStyles,
 } from "@datxe/ui";
 import { useNotifications } from "../hooks/useNotifications";
-function message(payload: unknown) {
+import { notificationTypeLabel } from "@/lib/displayLabels";
+function message(payload: unknown, type: string) {
   if (!payload || typeof payload !== "object") return "";
   const p = payload as Record<string, unknown>;
+  const raw = ["message", "body", "description", "content"]
+    .map((k) => p[k])
+    .find((v) => typeof v === "string") as string | undefined;
+  if (raw) {
+    const translated = notificationTypeLabel(raw);
+    if (translated !== "Thông báo từ hệ thống") return translated;
+  }
   return (
-    (["message", "body", "description", "content"]
-      .map((k) => p[k])
-      .find((v) => typeof v === "string") as string | undefined) ?? ""
+    raw ?? notificationTypeLabel(type)
   );
 }
 export default function NotificationsScreen() {
@@ -41,10 +47,10 @@ export default function NotificationsScreen() {
           style={themed_s.card}
         >
           <Text style={themed_s.label}>
-            {item.readAt ? "Đã đọc" : "Chưa đọc"} · {item.type}
+            {item.readAt ? "Đã đọc" : "Chưa đọc"} · {notificationTypeLabel(item.type)}
           </Text>
           <Text style={themed_s.text}>
-            {message(item.payload) || "Có cập nhật từ hệ thống."}
+            {message(item.payload, item.type)}
           </Text>
           <Text style={themed_s.label}>
             {new Date(item.createdAt).toLocaleString("vi-VN")}

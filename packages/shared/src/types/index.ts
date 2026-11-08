@@ -31,9 +31,11 @@ export type RideStatus =
   | 'VEHICLE_RETURNED'
   | 'COMPLETED'
   | 'CANCELLED'
+  | 'FAILED_SYSTEM'
   | 'NO_DRIVER_FOUND'
   | 'EXPIRED';
 
+export * from './support';
 export type RideActorRole = 'CUSTOMER' | 'DRIVER' | 'SYSTEM';
 export type RideStatusResponse = {
   rideId: number;
@@ -42,13 +44,36 @@ export type RideStatusResponse = {
   changedAt: string;
 };
 
+export type CustomerRideDriver = {
+  id: number;
+  fullName: string | null;
+  phoneNumber: string | null;
+  avatarUrl: string | null;
+  averageRating: number | null;
+  yearsOfExperience?: number | null;
+  licenseClass?: string | null;
+  licenseVerified?: boolean;
+  profileVerified?: boolean;
+};
+
 export type CustomerRideDetail = {
+  payment?: { amount: number; method: PaymentMethod; status: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'; paidAt: string | null } | null;
   pickupNote?: string | null;
   route?: SavedRideRoute | null;
   id: number;
   customerId: number;
+  customer?: {
+    fullName: string | null;
+    phoneNumber?: string | null;
+    email?: string | null;
+    avatarUrl?: string | null;
+    averageRating?: number | null;
+  } | null;
   driverId: number | null;
+  driver?: CustomerRideDriver | null;
   vehicleId: number;
+  vehicleType?: 'CAR' | 'MOTORCYCLE' | null;
+  licensePlate?: string | null;
   type: 'INSTANT' | 'SCHEDULED';
   scheduledAt: string | null;
   pickupAddress: string | null;
@@ -71,6 +96,9 @@ export type CustomerRideDetail = {
     actorRole: RideActorRole | null;
   }>;
   handoverReports: Array<{
+    revision?: number;
+    correctionReason?: string | null;
+    correctionImages?: Array<{ fileUrl: string; publicId: string }>;
     id: number;
     phase: 'PICKUP' | 'DROPOFF';
     odometer: number;
@@ -118,6 +146,13 @@ export type CustomerRideSummary = {
 };
 
 export type RideCoordinates = { lat: number; lng: number };
+export type MapDirections = {
+  distance: number;
+  duration: number;
+  coordinates: RideCoordinates[];
+  steps?: Array<{ instruction: string; distanceMeters: number }>;
+};
+
 export type SavedRideRoute = { id: string; polyline: string; polylinePrecision: number; coordinates: RideCoordinates[]; distanceMeters: number; durationSeconds: number; provider: string; vehicleType: 'CAR' | 'MOTORCYCLE'; limitation?: string | null; expiresAt?: string | null };
 export type NearbyDriverMarker = { location: RideCoordinates };
 export type RideEstimateRequest = {

@@ -40,7 +40,7 @@ Project áp dụng: D:\datxe_rn. Đối chiếu controller/DTO/service tại D:\
 | settings/[section]: notifications | Quyền thông báo thực + mở cài đặt hệ thống; gỡ công tắc lọc theo loại chưa có backend xử lý |
 | settings/[section]: permissions | Quyền location/camera/notifications thực của OS |
 | settings/[section]: places | Search/detail backend; dữ liệu đã lưu cục bộ theo UID, ghi rõ trên thiết bị này |
-| settings/[section]: account | Sửa profile, logout, DELETE /auth/account |
+| Hồ sơ: Thông tin cá nhân / quản lý tài khoản | Sửa profile qua /edit-profile; logout và DELETE /auth/account chỉ còn ở cuối Hồ sơ. Màn /settings/account đã gỡ. |
 | settings/[section]: about | Phiên bản từ expo-constants; điều hướng legal/support |
 
 ## Driver — từng route

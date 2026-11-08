@@ -19,14 +19,19 @@ const [photo, setPhoto] = useState<ImagePicker.ImagePickerAsset | null>(null);
 const [existingImages, setExistingImages] = useState<{ id: number; secure_url: string }[]>([]);
 const [deletingImageId, setDeletingImageId] = useState<number | null>(null);
 const [saving, setSaving] = useState(false);
-const [loadingVehicle, setLoadingVehicle] = useState(Boolean(vehicleId));
+const [loadedVehicleId, setLoadedVehicleId] = useState<number | null>(null);
+const [loadFailure, setLoadFailure] = useState<{ id: number; message: string } | null>(null);
+const [loadAttempt, setLoadAttempt] = useState(0);
+const loadError = loadFailure && loadFailure.id === vehicleId ? loadFailure.message : '';
+const loadingVehicle = Boolean(vehicleId && loadedVehicleId !== vehicleId && !loadError);
+const retryVehicle = () => { setLoadFailure(null); setLoadAttempt((attempt) => attempt + 1); };
 useEffect(() => {
     if (!vehicleId) return;
     let alive = true;
     getCustomerVehicles().then((vehicles) => {
       const current = vehicles.find((item) => item.id === vehicleId);
       if (!alive) return;
-      if (!current) { localizedAlert(i18nT("Không tìm thấy xe"), i18nT("Xe này không còn trong tài khoản.")); return; }
+      if (!current) { setLoadFailure({ id: vehicleId, message: i18nT("Xe này không còn trong tài khoản.") }); return; }
       setPlate(current.plate_number ?? '');
       setBrand(current.brand ?? '');
       setModel(current.model ?? '');
@@ -35,11 +40,12 @@ useEffect(() => {
       setTransmission(current.transmission_type === 'MANUAL' ? 'MANUAL' : 'AUTO');
       setVehicleType(current.vehicle_type === 'MOTORCYCLE' ? 'MOTORCYCLE' : 'CAR');
       setExistingImages(current.images);
+      setLoadedVehicleId(vehicleId);
     }).catch((error: unknown) => {
-      if (alive) localizedAlert(i18nT("Không tải được xe"), error instanceof Error ? error.message : i18nT("Vui lòng thử lại."));
-    }).finally(() => alive && setLoadingVehicle(false));
+      if (alive) setLoadFailure({ id: vehicleId, message: error instanceof Error ? error.message : i18nT("Không tải được xe") });
+    });
     return () => { alive = false; };
-  }, [vehicleId]);
+  }, [vehicleId, loadAttempt]);
 const choosePhoto = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, quality: 0.85 });
     if (!result.canceled) setPhoto(result.assets[0] ?? null);
@@ -60,6 +66,7 @@ const removeImage = (imageId: number) => localizedAlert(i18nT("Xóa ảnh xe"), 
     })(); } },
   ]);
 const save = async () => {
+    if (loadingVehicle || loadError || saving) return;
     if (!plate.trim()) {
       localizedAlert(i18nT("Thiếu biển số"), i18nT("Nhập biển số xe để lưu."));
       return;
@@ -103,5 +110,5 @@ const save = async () => {
       setSaving(false);
     }
   };
-return { router, vehicleId, plate, setPlate, brand, setBrand, model, setModel, color, setColor, engine, setEngine, transmission, setTransmission, vehicleType, setVehicleType, photo, existingImages, deletingImageId, saving, loadingVehicle, choosePhoto, removeImage, save };
+return { router, vehicleId, plate, setPlate, brand, setBrand, model, setModel, color, setColor, engine, setEngine, transmission, setTransmission, vehicleType, setVehicleType, photo, existingImages, deletingImageId, saving, loadingVehicle, loadError, retryVehicle, choosePhoto, removeImage, save };
 }

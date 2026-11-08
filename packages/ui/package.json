@@ -8,15 +8,22 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@datxe/shared": "*"
+    "@datxe/shared": "*",
+    "react-native-paper": "^5"
   },
   "peerDependencies": {
+    "@expo/vector-icons": "*",
+    "expo-linear-gradient": "*",
     "react": "*",
     "react-native": "*",
-    "@expo/vector-icons": "*",
-    "expo-linear-gradient": "*"
+    "react-native-gesture-handler": "*",
+    "react-native-reanimated": "*",
+    "@maplibre/maplibre-react-native": "^11.5.1",
+    "maplibre-gl": "^6.16.0",
+    "@gorhom/bottom-sheet": "^5.2.14"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./goong-map": "./src/maps/index.ts"
   }
 }

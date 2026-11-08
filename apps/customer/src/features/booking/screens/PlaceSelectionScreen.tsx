@@ -1,7 +1,10 @@
+import { customerType } from "@/components/CustomerRideUI";
+import { ActivityIndicator } from "react-native-paper";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { translate as i18nT } from "@datxe/shared";
 import type { ThemeColors } from "@datxe/ui";
 import {
+  GroupedList,
   MotionPressable as Pressable,
   ScreenWrapper as SafeAreaView,
   Typography as Text,
@@ -10,9 +13,9 @@ import {
   useThemeColors,
   useThemedStyles,
 } from "@datxe/ui";
+import { useRef, useState, type ComponentRef } from "react";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -26,6 +29,7 @@ import type { PlaceKind } from "../types";
 
 export default function PlaceSelectionScreen({ kind }: { kind: PlaceKind }) {
   const extra = useThemedStyles(extraStyles);
+  const searchInput = useRef<ComponentRef<typeof TextInput>>(null);
 
   useLanguage();
 
@@ -34,9 +38,14 @@ export default function PlaceSelectionScreen({ kind }: { kind: PlaceKind }) {
   const s = useThemedStyles(base_s);
 
   const h = usePlaceSelection(kind);
+  const [searchPreset, setSearchPreset] = useState({ text: h.initialText, revision: 0 });
+  const fillRecentAddress = (address: string) => {
+    setSearchPreset((previous) => ({ text: address, revision: previous.revision + 1 }));
+    h.onChangeText(address);
+  };
   const isPickup = kind === "pickup";
   return (
-    <SafeAreaView style={[s.safe, s.white]} edges={["top", "bottom"]}>
+    <SafeAreaView style={s.safe} edges={["top", "bottom"]}>
       <ScreenHeader
         title={i18nT(isPickup ? "Chọn điểm đón" : "Bạn muốn đến đâu?")}
         onBack={() => h.router.back()}
@@ -47,8 +56,8 @@ export default function PlaceSelectionScreen({ kind }: { kind: PlaceKind }) {
       >
         <View style={[s.page, extra.item1]}>
           <Text style={s.label}>
-            {i18nT("BƯỚC")} {i18nT(isPickup ? "1" : "2")}/4 ·{" "}
-            {i18nT(isPickup ? "ĐIỂM ĐÓN" : "ĐIỂM ĐẾN")}
+            {i18nT("Bước")} {i18nT(isPickup ? "1" : "2")}/4 ·{" "}
+            {i18nT(isPickup ? "Điểm đón" : "Điểm đến")}
           </Text>
           {!isPickup && h.pickup ? (
             <View style={s.row}>
@@ -68,8 +77,10 @@ export default function PlaceSelectionScreen({ kind }: { kind: PlaceKind }) {
               accessibilityLabel={i18nT(
                 isPickup ? "Tìm điểm đón" : "Tìm điểm đến",
               )}
-              value={h.text}
-              onChangeText={h.setText}
+              ref={searchInput}
+              key={searchPreset.revision}
+              defaultValue={searchPreset.text}
+              onChangeText={h.onChangeText}
               placeholder={i18nT("Tìm tên đường, địa chỉ, địa điểm…")}
               maxLength={255}
               style={s.search}
@@ -78,14 +89,15 @@ export default function PlaceSelectionScreen({ kind }: { kind: PlaceKind }) {
             {h.text ? (
               <Pressable
                 accessibilityLabel={i18nT("Xóa tìm kiếm")}
-                hitSlop={12}
-                onPress={() => h.setText("")}
+                accessibilityRole="button"
+                style={[customerType.target, extra.clear]}
+                onPress={() => { searchInput.current?.clear(); h.clearText(); }}
               >
                 <MaterialIcons name="cancel" size={20} color={colors.outline} />
               </Pressable>
             ) : null}
           </View>
-          <Pressable onPress={h.openMap} style={[s.row, extra.item2]}>
+          <Pressable onPress={h.openMap} accessibilityRole="button" style={[s.row, extra.item2, customerType.target]}>
             <MaterialIcons name="map" size={23} color={colors.primary} />
             <Text style={s.link}>{i18nT("Chọn vị trí trên bản đồ")}</Text>
             <MaterialIcons
@@ -99,9 +111,10 @@ export default function PlaceSelectionScreen({ kind }: { kind: PlaceKind }) {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           style={s.flex}
+          contentContainerStyle={s.page}
         >
           {!h.text.trim() ? (
-            <>
+            <GroupedList>
               {h.savedPlaces.map((place) => (
                 <Pressable
                   key={place.id}
@@ -164,7 +177,7 @@ export default function PlaceSelectionScreen({ kind }: { kind: PlaceKind }) {
                     color={colors.primary}
                   />
                   <View style={s.flex}>
-                    <Text style={s.label}>{i18nT("ĐỊA ĐIỂM ĐÃ CHỌN")}</Text>
+                    <Text style={s.label}>{i18nT("Địa điểm đã chọn")}</Text>
                     <Text style={s.text}>{h.selected.address}</Text>
                   </View>
                   <MaterialIcons
@@ -176,13 +189,13 @@ export default function PlaceSelectionScreen({ kind }: { kind: PlaceKind }) {
               ) : null}
               {h.recentAddresses.length ? (
                 <Text style={[s.label, extra.item5]}>
-                  {i18nT("ĐỊA ĐIỂM GẦN ĐÂY")}
+                  {i18nT("Địa điểm gần đây")}
                 </Text>
               ) : null}
               {h.recentAddresses.map((address) => (
                 <Pressable
                   key={address}
-                  onPress={() => h.setText(address)}
+                  onPress={() => fillRecentAddress(address)}
                   style={s.listItem}
                 >
                   <View style={s.icon}>
@@ -211,7 +224,7 @@ export default function PlaceSelectionScreen({ kind }: { kind: PlaceKind }) {
                   </Text>
                 </View>
               ) : null}
-            </>
+            </GroupedList>
           ) : null}
           {h.loading ? (
             <View style={s.empty}>
@@ -231,8 +244,9 @@ export default function PlaceSelectionScreen({ kind }: { kind: PlaceKind }) {
               </Text>
             </View>
           ) : null}
-          {!h.loading
-            ? h.results.map((place) => (
+          {!h.loading && h.results.length > 0 ? (
+            <GroupedList>
+              {h.results.map((place) => (
                 <Pressable
                   key={place.id}
                   accessibilityRole="button"
@@ -271,8 +285,9 @@ export default function PlaceSelectionScreen({ kind }: { kind: PlaceKind }) {
                     />
                   )}
                 </Pressable>
-              ))
-            : null}
+              ))}
+            </GroupedList>
+          ) : null}
           {h.limitedCoverage &&
           !h.loading &&
           !h.error &&
@@ -310,12 +325,13 @@ export default function PlaceSelectionScreen({ kind }: { kind: PlaceKind }) {
 const extraStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     item1: { paddingBottom: 12 },
+    clear: { alignItems: "center" },
     item2: { paddingVertical: 8 },
     item3: { backgroundColor: colors.successContainer },
     item4: { fontWeight: "600" },
-    item5: { margin: 20, marginBottom: 4 },
-    item6: { padding: 20 },
-    item7: { margin: 20 },
+    item5: { margin: 16, marginBottom: 4 },
+    item6: { padding: 16 },
+    item7: { margin: 16 },
     item8: { fontWeight: "600" },
-    item9: { padding: 20 },
+    item9: { padding: 16 },
   });

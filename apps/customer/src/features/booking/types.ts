@@ -1,7 +1,7 @@
 import type { RideCoordinates } from '@datxe/shared';
-export type BookingPlace = { id: string; name: string; address: string; coordinate: RideCoordinates; provider?: 'mapbox' | 'goong'; secondaryAddress?: string | null };
+export type BookingPlace = { id: string; name: string; address: string; coordinate: RideCoordinates; provider?: 'goong'; secondaryAddress?: string | null };
 export type PlaceSuggestion = Omit<BookingPlace, 'coordinate'> & { coordinate?: RideCoordinates | null };
-export type PlaceSearchResult = { provider: 'mapbox' | 'goong'; limitedCoverage: boolean; places: PlaceSuggestion[] };
+export type PlaceSearchResult = { provider: 'goong'; limitedCoverage: boolean; places: PlaceSuggestion[] };
 export type PlaceKind = 'pickup' | 'dropoff';
 export type BookingMapProps = {
   center: RideCoordinates;

@@ -10,19 +10,16 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
-import type { ThemeColors } from "../theme/ThemeProvider";
-import { useThemeColors, useThemedStyles } from "../theme/ThemeProvider";
+import { Text } from "react-native-paper";
+import { PaperTextInput as PaperInput } from "./PaperTextInput";
+import { useThemeColors } from "../theme/ThemeProvider";
 import { useLanguage } from "../useLanguage";
-import { MotionPressable as Pressable } from "./MotionPressable";
-import { ThemedTextInput as TextInput } from "./ThemedTextInput";
-import { Typography as Text } from "./Typography";
-
-import { borderRadius, fontSize, spacing, typography } from "../theme/colors";
-
 type IconName = keyof typeof MaterialIcons.glyphMap;
 
 export type InputProps = {
-  value: string;
+  defaultValue?: string;
+  draftValue?: string;
+  value?: string;
   onChangeText: (text: string) => void;
   label?: string;
   /** Nội dung hiển thị bên phải dòng label, ví dụ liên kết "Quên mật khẩu?". */
@@ -43,6 +40,8 @@ export type InputProps = {
 };
 
 export function Input({
+  defaultValue,
+  draftValue,
   value,
   onChangeText,
   label,
@@ -60,110 +59,66 @@ export function Input({
   inputStyle,
 }: InputProps) {
   useLanguage();
-
   const colors = useThemeColors();
-
-  const styles = useThemedStyles(base_styles);
-
-  const [focused, setFocused] = useState(false);
   const [secureVisible, setSecureVisible] = useState(false);
-
   return (
     <View style={styles.field}>
-      {label && labelAccessory ? (
+      {labelAccessory ? (
         <View style={styles.labelRow}>
-          <Text style={styles.label}>{i18nT(label)}</Text>
+          <Text variant="labelLarge">{i18nT(label)}</Text>
           {labelAccessory}
         </View>
-      ) : label ? (
-        <Text style={styles.label}>{i18nT(label)}</Text>
       ) : null}
-
-      <View style={[styles.row, focused && styles.rowFocused, style]}>
-        {icon ? (
-          <MaterialIcons
-            color={colors.secondary}
-            name={icon}
-            size={fontSize.iconXl}
-            style={styles.icon}
-          />
-        ) : null}
-
-        <TextInput
-          accessibilityLabel={i18nT(accessibilityLabel ?? label)}
-          autoCapitalize={autoCapitalize}
-          autoComplete={autoComplete}
-          editable={editable}
-          keyboardType={keyboardType}
-          maxLength={maxLength}
-          onBlur={() => setFocused(false)}
-          onChangeText={onChangeText}
-          onFocus={() => setFocused(true)}
-          placeholder={i18nT(placeholder)}
-          placeholderTextColor={colors.outline70}
-          secureTextEntry={secure && !secureVisible}
-          style={[styles.input, inputStyle]}
-          value={value}
-        />
-
-        {secure ? (
-          <Pressable
-            accessibilityLabel={i18nT("Hiện hoặc ẩn mật khẩu")}
-            onPress={() => setSecureVisible((visible) => !visible)}
-            style={styles.visibilityButton}
-          >
-            <MaterialIcons
-              color={colors.secondary}
-              name={secureVisible ? "visibility-off" : "visibility"}
-              size={fontSize.iconXl}
+      <PaperInput
+        mode="outlined"
+        label={labelAccessory ? undefined : i18nT(label)}
+        accessibilityLabel={i18nT(accessibilityLabel ?? label)}
+        defaultValue={defaultValue}
+        draftValue={draftValue}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={i18nT(placeholder)}
+        editable={editable}
+        keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize}
+        autoComplete={autoComplete}
+        maxLength={maxLength}
+        secureTextEntry={secure && !secureVisible}
+        left={
+          icon ? (
+            <PaperInput.Icon
+              icon={(props) => <MaterialIcons {...props} name={icon} />}
             />
-          </Pressable>
-        ) : null}
-      </View>
+          ) : undefined
+        }
+        right={
+          secure ? (
+            <PaperInput.Icon
+              accessibilityLabel={i18nT("Hiện hoặc ẩn mật khẩu")}
+              icon={(props) => (
+                <MaterialIcons
+                  {...props}
+                  name={secureVisible ? "visibility-off" : "visibility"}
+                />
+              )}
+              onPress={() => setSecureVisible((visible) => !visible)}
+            />
+          ) : undefined
+        }
+        style={[{ backgroundColor: colors.inputSurface }, style]}
+        outlineStyle={styles.outline}
+        contentStyle={[styles.content, inputStyle]}
+      />
     </View>
   );
 }
-
-const base_styles = (colors: ThemeColors) =>
-  StyleSheet.create({
-    field: {
-      gap: spacing.gap1_5,
-    },
-    labelRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-    label: {
-      ...typography.labelLg,
-      fontSize: 13,
-      color: colors.onSurface,
-    },
-    row: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: colors.surfaceContainerLowest,
-      borderRadius: borderRadius.xl,
-      paddingHorizontal: spacing.px3_5,
-      height: spacing.inputHeight,
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
-    },
-    rowFocused: {
-      borderColor: colors.primary,
-    },
-    icon: {
-      marginRight: spacing.px2_5,
-    },
-    input: {
-      ...typography.bodyLg,
-      fontSize: 15,
-      color: colors.onSurface,
-      flex: 1,
-      padding: 0,
-    },
-    visibilityButton: {
-      padding: spacing.py1,
-      borderRadius: borderRadius.lg,
-    },
-  });
+const styles = StyleSheet.create({
+  field: { gap: 8 },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  outline: { borderRadius: 24 },
+  content: { minHeight: 56, fontSize: 16 },
+});

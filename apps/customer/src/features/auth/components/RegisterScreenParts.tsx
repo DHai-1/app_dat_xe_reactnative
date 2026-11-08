@@ -1,5 +1,5 @@
 import type { ThemeColors } from "@datxe/ui";
-import { borderRadius, spacing, typography } from "@datxe/ui";
+import { spacing, typography } from "@datxe/ui";
 import { StyleSheet } from "react-native";
 export const genderOptions = [
   { value: "MALE", label: "Nam" },
@@ -62,14 +62,13 @@ export const styles = (colors: ThemeColors) =>
     },
     inputSurface: {
       backgroundColor: colors.cardSurface,
-      borderWidth: 0,
     },
     dateRow: {
       minHeight: spacing.inputHeight,
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.spaceSm,
-      borderRadius: borderRadius.xl,
+      borderRadius: 24,
       backgroundColor: colors.cardSurface,
       paddingHorizontal: spacing.px3_5,
     },
@@ -91,16 +90,14 @@ export const styles = (colors: ThemeColors) =>
       flexWrap: "wrap",
     },
     genderOption: {
-      minHeight: 40,
+      minHeight: 48,
       justifyContent: "center",
       paddingHorizontal: spacing.spaceMd,
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
-      borderRadius: borderRadius.full,
+
+      borderRadius: 999,
       backgroundColor: colors.surfaceContainerLowest,
     },
     genderOptionSelected: {
-      borderColor: colors.primaryContainer,
       backgroundColor: colors.primaryContainer,
     },
     genderOptionText: {
@@ -116,7 +113,7 @@ export const styles = (colors: ThemeColors) =>
       alignItems: "center",
       gap: spacing.spaceSm,
       padding: spacing.px3_5,
-      borderRadius: borderRadius.xl,
+      borderRadius: 24,
       backgroundColor: colors.cardSurface,
     },
     infoCopy: { flex: 1 },

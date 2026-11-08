@@ -9,7 +9,7 @@ export const env = {
   googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim(),
   facebookAppId: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID?.trim(),
   facebookClientToken: process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN?.trim(),
-  mapboxToken: process.env.EXPO_PUBLIC_MAPBOX_TOKEN?.trim(),
+  goongMapKey: process.env.EXPO_PUBLIC_GOONG_MAP_KEY?.trim(),
   sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN?.trim(),
 };
 export function validateEnv() {

@@ -1,14 +1,17 @@
 import { translate as i18nT , AuthApiError,AuthCancelledError,DEFAULT_PHONE_COUNTRY,authenticateWithBackend,isValidInternationalPhoneNumber,sendPhoneCode,signInWithFacebook,signInWithGoogle,toInternationalPhoneNumber } from '@datxe/shared';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { SignInMethod,getErrorMessage,isAccountNotFound } from '../components/LoginScreenParts';
 export function useLogin() {
 const router = useRouter();
-const [phone, setPhone] = useState('');
+// Keep the latest phone for validation without controlling the input.
+const phoneDraft = useRef('');
+const setPhone = (text: string) => { phoneDraft.current = text; };
 const [country, setCountry] = useState(DEFAULT_PHONE_COUNTRY);
 const [busy, setBusy] = useState<SignInMethod>(null);
 const [error, setError] = useState('');
 const continueWithPhone = async () => {
+    const phone = phoneDraft.current;
     if (!isValidInternationalPhoneNumber(phone, country)) {
       setError(i18nT("Vui lòng nhập số điện thoại {0} hợp lệ.", {"0": country.name}));
       return;
@@ -57,5 +60,5 @@ const continueWithSocial = async (method: Exclude<SignInMethod, 'phone' | null>)
       setBusy(null);
     }
   };
-return { router, phone, setPhone, country, setCountry, busy, error, setError, continueWithPhone, continueWithSocial };
+return { router, setPhone, country, setCountry, busy, error, setError, continueWithPhone, continueWithSocial };
 }

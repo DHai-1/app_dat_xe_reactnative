@@ -1,5 +1,6 @@
 import { forwardRef, type ComponentRef } from "react";
-import { StyleSheet, TextInput, type TextInputProps } from "react-native";
+import { StyleSheet, TextInput } from "react-native";
+import { NativeDraftTextInput, type DraftTextInputProps } from "./NativeDraftTextInput";
 import { typography } from "../theme/colors";
 import {
   useThemeColors,
@@ -9,15 +10,17 @@ import {
 
 export const ThemedTextInput = forwardRef<
   ComponentRef<typeof TextInput>,
-  TextInputProps
+  DraftTextInputProps
 >(function ThemedTextInput({ style, ...props }, ref) {
   const colors = useThemeColors();
   const styles = useThemedStyles(createStyles);
   return (
-    <TextInput
+    <NativeDraftTextInput
       ref={ref}
       placeholderTextColor={colors.onSurfaceVariant}
       selectionColor={colors.primary}
+      autoCorrect={false}
+      spellCheck={false}
       {...props}
       style={[styles.input, style]}
     />

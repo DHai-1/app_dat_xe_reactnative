@@ -1,42 +1,41 @@
+import { ProgressBar } from "react-native-paper";
+import { DriverPage } from "@/components/DriverPage";
+import { DriverPhoto } from "@/components/DriverPhoto";
 import { rideStyles as s } from "@/components/rideStyles";
 import {
   Button,
   Card,
-  MotionPressable as Pressable,
-  ScreenWrapper as SafeAreaView,
+  HandoverHistory,
+  GroupedList,
   Typography as Text,
   ThemedTextInput as TextInput,
   useThemedStyles,
 } from "@datxe/ui";
-import { ActivityIndicator, Image, ScrollView, StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 
-import { PickupNoteCard } from "../components/PickupNoteCard";
-import {
-  PHOTO_ANGLES,
-  useVehicleInspection,
-} from "../hooks/useVehicleInspection";
+import { RideStopCard } from "../components/RideStopCard";
+import { PHOTO_ANGLES, photoAngleLabel } from "../photoAngles";
+import { useVehicleInspection } from "../hooks/useVehicleInspection";
+
 export default function VehicleInspectionScreen() {
-  const extra = useThemedStyles(extraStyles);
-
   const themed_s = useThemedStyles(s);
-
   const h = useVehicleInspection();
+  const required = PHOTO_ANGLES.filter(([angle]) => angle !== "DASHBOARD");
+  const missing = required.filter(([angle]) => !h.photos.some((photo) => photo.angle === angle));
+  const odometerValid = /^\d+$/.test(h.odometer.trim()) && Number.isSafeInteger(Number(h.odometer));
+  const fuelValid = !h.fuelLevel || (/^\d+$/.test(h.fuelLevel) && Number(h.fuelLevel) <= 100);
   return (
-    <SafeAreaView style={themed_s.safe}>
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={themed_s.page}
-      >
-        <Pressable onPress={() => h.router.back()}>
-          <Text style={themed_s.link}>‹ Quay lại</Text>
-        </Pressable>
-        <Text style={themed_s.title}>
-          Biên bản {h.phase === "pickup" ? "nhận xe" : "trả xe"}
-        </Text>
-        <PickupNoteCard />
-        {h.loading ? <ActivityIndicator /> : null}
-        {h.error ? <Text style={themed_s.error}>{h.error}</Text> : null}
-        {h.existing ? (
+    <DriverPage title={`Biên bản ${h.phase === "pickup" ? "nhận xe" : "trả xe"}`}
+      loading={h.loading} error={h.error}>
+        {h.ride ? <RideStopCard ride={h.ride} phase={h.phase} /> : null}
+        {h.existing ? <Text style={themed_s.label}>Phiên bản {h.existing.revision ?? 1}</Text> : null}
+        {h.existing?.correctionReason ? <Card style={themed_s.card}>
+          <Text style={themed_s.title}>Khách yêu cầu điều chỉnh</Text>
+          <Text style={themed_s.text}>{h.existing.correctionReason}</Text>
+          {h.existing.correctionImages?.map(image => <DriverPhoto key={image.publicId} uri={image.fileUrl} label="Ảnh khách yêu cầu điều chỉnh" />)}
+          <Text style={themed_s.text}>Kiểm tra lại cùng khách, cập nhật thông tin và chụp bộ ảnh mới. Phiên bản cũ được giữ để đối chiếu; khách cần xác nhận lại trước khi tiếp tục chuyến.</Text>
+        </Card> : null}
+        {h.existing && !h.editable ? (
           <Card style={themed_s.card}>
             <Text style={themed_s.text}>
               {h.existing.confirmedByCustomer
@@ -47,12 +46,11 @@ export default function VehicleInspectionScreen() {
               {h.existing.odometer} km · {h.existing.notes}
             </Text>
             {h.existing.photos.map((photo) => (
-              <Image
-                key={photo.id}
-                source={{ uri: photo.fileUrl }}
-                style={extra.item1}
-              />
+              <DriverPhoto key={photo.id} uri={photo.fileUrl} label={photoAngleLabel(photo.angle)} />
             ))}
+            {!h.existing.confirmedByCustomer ? (
+              <Button variant="secondary" label="Kiểm tra xác nhận của khách" onPress={() => void h.refresh()} />
+            ) : null}
           </Card>
         ) : h.editable ? (
           <>
@@ -60,7 +58,7 @@ export default function VehicleInspectionScreen() {
               <Text style={themed_s.label}>SỐ KM ĐỒNG HỒ</Text>
               <TextInput
                 accessibilityLabel="Số km đồng hồ"
-                value={h.odometer}
+                draftValue={h.odometer}
                 onChangeText={h.setOdometer}
                 keyboardType="number-pad"
                 style={themed_s.text}
@@ -68,7 +66,7 @@ export default function VehicleInspectionScreen() {
               />
               <Text style={themed_s.label}>NHIÊN LIỆU (%) · TÙY CHỌN</Text>
               <TextInput
-                value={h.fuelLevel}
+                draftValue={h.fuelLevel}
                 onChangeText={h.setFuelLevel}
                 keyboardType="number-pad"
                 style={themed_s.text}
@@ -76,7 +74,7 @@ export default function VehicleInspectionScreen() {
               />
               <TextInput
                 accessibilityLabel="Ghi chú biên bản"
-                value={h.notes}
+                draftValue={h.notes}
                 onChangeText={h.setNotes}
                 multiline
                 maxLength={2000}
@@ -84,49 +82,48 @@ export default function VehicleInspectionScreen() {
                 placeholder="Tình trạng xe khi bàn giao…"
               />
             </Card>
-            {PHOTO_ANGLES.map(([angle, label]) => (
-              <Pressable
-                key={angle}
-                disabled={Boolean(h.uploading) || h.submit.isPending}
-                onPress={() => void h.capture(angle)}
-                style={themed_s.card}
-              >
-                <Text style={themed_s.link}>{label} · Chụp ảnh</Text>
-                {h.uploading === angle ? <ActivityIndicator /> : null}
-                {h.photos.find((photo) => photo.angle === angle) ? (
-                  <Image
-                    source={{
-                      uri: h.photos.find((photo) => photo.angle === angle)!.uri,
-                    }}
-                    style={extra.item2}
-                  />
-                ) : null}
-              </Pressable>
-            ))}
-            <Button
-              disabled={Boolean(h.uploading) || h.submit.isPending}
-              onPress={() => h.submit.mutate()}
-              style={themed_s.button}
-              label={
-                h.submit.isPending
-                  ? "Đang gửi…"
-                  : "Gửi biên bản cho khách xác nhận"
-              }
-              textStyle={themed_s.buttonText}
-            />
+            <GroupedList title={`Ảnh bắt buộc · ${required.length - missing.length}/${required.length}`}>
+              <ProgressBar progress={(required.length - missing.length) / required.length} />
+              {PHOTO_ANGLES.map(([angle, label]) => {
+                const photo = h.photos.find((item) => item.angle === angle);
+                const uploading = h.uploading === angle;
+                return (
+                  <View key={angle} style={styles.photoRow}>
+                    <Text style={themed_s.text}>{label}</Text>
+                    {photo ? <DriverPhoto uri={photo.uri} label={label} /> : null}
+                    {h.photoError?.angle === angle ? (
+                      <Text accessibilityRole="alert" style={themed_s.error}>{h.photoError.message}</Text>
+                    ) : null}
+                    <Button variant="secondary" label={photo ? "Chụp lại" : "Chụp ảnh"}
+                      accessibilityLabel={`${photo ? "Chụp lại" : "Chụp ảnh"} · ${label}`}
+                      disabled={Boolean(h.uploading) || h.submit.isPending} loading={uploading}
+                      loadingLabel="Đang xử lý ảnh…" onPress={() => void h.capture(angle)} />
+                  </View>
+                );
+              })}
+            </GroupedList>
+            <Card style={themed_s.card}>
+              {!odometerValid ? <Text style={themed_s.label}>Nhập số km đồng hồ hợp lệ.</Text> : null}
+              {!fuelValid ? <Text style={themed_s.error}>Mức nhiên liệu phải từ 0 đến 100%.</Text> : null}
+              {missing.length ? <Text style={themed_s.label}>Ảnh còn thiếu · {missing.map(([, label]) => label).join(", ")}</Text> : null}
+              <Button
+                disabled={Boolean(h.uploading) || !odometerValid || !fuelValid || missing.length > 0}
+                loading={h.submit.isPending} loadingLabel="Đang gửi…"
+                onPress={() => h.submit.mutate()}
+                label="Gửi biên bản cho khách xác nhận"
+              />
+            </Card>
           </>
-        ) : (
+        ) : !h.loading ? (
           <Text style={themed_s.text}>
             Chỉ lập biên bản sau khi đã báo tới điểm đón hoặc điểm trả.
           </Text>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+        ) : null}
+        {h.revisions.error ? <Button label="Thử tải lại phiên bản cũ" variant="secondary" onPress={() => void h.revisions.refetch()} /> : null}
+        <HandoverHistory revisions={h.revisions.data ?? []} />
+        <Button label="Cần bộ phận hỗ trợ" variant="ghost" onPress={() => h.router.push({ pathname: '/support', params: h.ride ? { rideId: String(h.ride.id) } : {} } as never)} />
+    </DriverPage>
   );
 }
 
-const extraStyles = () =>
-  StyleSheet.create({
-    item1: { height: 180, borderRadius: 12 },
-    item2: { height: 180, borderRadius: 12 },
-  });
+const styles = StyleSheet.create({ photoRow: { gap: 8, paddingVertical: 8 } });

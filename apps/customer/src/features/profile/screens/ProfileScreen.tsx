@@ -1,3 +1,4 @@
+import { ActivityIndicator, Divider, IconButton } from "react-native-paper";
 import { CustomerTabBar } from "@/components/CustomerTabBar";
 import {
   HEADER_SAFETY_ACTION_WIDTH,
@@ -13,11 +14,13 @@ import { translate as i18nT, signOutFirebase } from "@datxe/shared";
 import type { ProfileScreenMenuItem } from "@datxe/ui";
 import {
   Card,
+  GroupedList,
+  SettingsListItem,
+  SectionHeading,
   fontSize,
   localizedAlert,
   MotionPressable as Pressable,
   ProfileScreenSUPPORT_SECTION,
-  ProfileScreenTONE_STYLES,
   ScreenWrapper as SafeAreaView,
   Typography as Text,
   useLanguage,
@@ -25,14 +28,7 @@ import {
   useThemedStyles,
 } from "@datxe/ui";
 import { MaterialIcons } from "@expo/vector-icons";
-import { Fragment } from "react";
-import {
-  ActivityIndicator,
-  Image,
-  Modal,
-  ScrollView,
-  View,
-} from "react-native";
+import { Image, Modal, ScrollView, View } from "react-native";
 
 import {
   getApiErrorMessage,
@@ -67,12 +63,12 @@ export default function ProfileScreen() {
     serviceItems,
   } = useProfile();
   const renderMenuItem = (item: ProfileScreenMenuItem) => {
-    const tone = ProfileScreenTONE_STYLES[item.tone];
     return (
-      <Pressable
+      <SettingsListItem
         key={item.id}
-        accessibilityRole="button"
-        accessibilityLabel={i18nT(t(item.title))}
+        title={t(item.title)}
+        description={item.subtitle}
+        icon={item.icon}
         onPress={() => {
           if (item.route) router.push(item.route as never);
           else if (item.id === "payments") router.push("/payment-methods");
@@ -81,69 +77,23 @@ export default function ProfileScreen() {
           else if (item.id === "safety")
             router.push({ pathname: "/support", params: { topic: "safety" } });
         }}
-        style={({ pressed }) => [
-          styles.menuRow,
-          pressed && styles.menuRowPressed,
-        ]}
-      >
-        <View style={styles.menuLeft}>
-          <View
-            style={[
-              styles.menuIconBox,
-              { backgroundColor: colors[tone.box as keyof typeof colors] },
-            ]}
-          >
-            <MaterialIcons
-              name={item.icon}
-              size={fontSize.iconLg}
-              color={colors[tone.icon as keyof typeof colors]}
-            />
-          </View>
-          <View style={styles.menuCopy}>
-            <Text style={styles.menuTitle} numberOfLines={1}>
-              {i18nT(item.title)}
-            </Text>
-            <Text style={styles.menuSubtitle} numberOfLines={1}>
-              {i18nT(item.subtitle)}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.menuRight}>
-          {item.badge ? (
-            <View
+        right={
+          item.badge ? (
+            <Text
               style={[
-                styles.menuBadge,
-                item.badge.highlighted && styles.menuBadgeHighlighted,
+                styles.menuBadgeText,
+                item.badge.highlighted && styles.menuBadgeTextHighlighted,
               ]}
             >
-              <Text
-                style={[
-                  styles.menuBadgeText,
-                  item.badge.highlighted && styles.menuBadgeTextHighlighted,
-                ]}
-              >
-                {i18nT(item.badge.label)}
-              </Text>
-            </View>
-          ) : null}
-          <MaterialIcons
-            name="chevron-right"
-            size={fontSize.iconLg}
-            color={colors.outline}
-          />
-        </View>
-      </Pressable>
+              {i18nT(item.badge.label)}
+            </Text>
+          ) : undefined
+        }
+      />
     );
   };
   const renderMenuGroup = (items: readonly ProfileScreenMenuItem[]) => (
-    <Card style={styles.menuGroup}>
-      {items.map((item, index) => (
-        <Fragment key={item.id}>
-          {index > 0 ? <View style={styles.rowDivider} /> : null}
-          {renderMenuItem(item)}
-        </Fragment>
-      ))}
-    </Card>
+    <GroupedList>{items.map(renderMenuItem)}</GroupedList>
   );
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
@@ -183,6 +133,7 @@ export default function ProfileScreen() {
         <Card style={styles.identityCard}>
           <View style={styles.identityRow}>
             <Pressable
+              accessibilityRole="button"
               accessibilityLabel={i18nT("Thay đổi ảnh đại diện")}
               disabled={uploadingAvatar || !profile}
               onPress={() => void changeAvatar()}
@@ -222,6 +173,7 @@ export default function ProfileScreen() {
               ) : (
                 <Pressable
                   accessibilityRole="button"
+                  style={{ minHeight: 48, minWidth: 48, justifyContent: "center" }}
                   onPress={() =>
                     router.push("/(auth)/add-phone-number" as never)
                   }
@@ -231,24 +183,22 @@ export default function ProfileScreen() {
                   </Text>
                 </Pressable>
               )}
-              <Text style={styles.userEmail} numberOfLines={1}>
+              <Text style={styles.userEmail} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                 {i18nT(profile?.email || "Chưa cập nhật email")}
               </Text>
             </View>
-            <Pressable
+            <IconButton
+              icon="pencil-outline"
+              mode="contained-tonal"
+              size={20}
+              iconColor={colors.primary}
               accessibilityLabel={i18nT("Chỉnh sửa thông tin")}
               disabled={!profile}
               onPress={openEdit}
               style={styles.editButton}
-            >
-              <MaterialIcons
-                name="edit"
-                size={fontSize.iconLg}
-                color={colors.onSurfaceVariant}
-              />
-            </Pressable>
+            />
           </View>
-
+          <Divider style={styles.identityDivider} />
           <View style={styles.statsGrid}>
             {profileStats.map((stat) => (
               <View key={stat.id} style={styles.statItem}>
@@ -268,19 +218,17 @@ export default function ProfileScreen() {
         </Card>
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>{i18nT("Dịch vụ & Xe")}</Text>
+          <SectionHeading title="Dịch vụ & Xe" />
           {renderMenuGroup(serviceItems)}
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>
-            {i18nT("Hỗ trợ & An toàn")}
-          </Text>
+          <SectionHeading title="Hỗ trợ & An toàn" />
           {renderMenuGroup(ProfileScreenSUPPORT_SECTION)}
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>{i18nT("CÀI ĐẶT")}</Text>
+          <SectionHeading title="Cài đặt" />
           <Card style={styles.menuGroup}>
             {renderMenuItem({
               id: "settings",
@@ -319,9 +267,7 @@ export default function ProfileScreen() {
                 size={fontSize.iconLg}
                 color={colors.primary}
               />
-              <Text style={styles.logoutRowText}>
-                {i18nT("Xóa tài khoản")}
-              </Text>
+              <Text style={styles.logoutRowText}>{i18nT("Xóa tài khoản")}</Text>
             </Pressable>
           </Card>
         </View>

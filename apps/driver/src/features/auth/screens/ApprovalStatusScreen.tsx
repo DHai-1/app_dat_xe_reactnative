@@ -10,6 +10,7 @@ import {
 import { useRouter } from "expo-router";
 import { View } from "react-native";
 import { useApprovalStatus } from "../hooks/useApprovalStatus";
+import { documentTypeLabel, statusLabel } from "@/lib/displayLabels";
 export default function ApprovalStatusScreen() {
   const themed_s = useThemedStyles(s);
   const { verification: v, documents: d } = useApprovalStatus(),
@@ -45,7 +46,7 @@ export default function ApprovalStatusScreen() {
       {d.data?.map((doc) => (
         <View key={doc.id} style={themed_s.card}>
           <Text style={themed_s.text}>
-            {doc.document_type} · {doc.verification_status}
+            {documentTypeLabel(doc.document_type)} · {statusLabel("documentReview", doc.verification_status).label}
           </Text>
           {doc.rejection_reason ? (
             <Text style={themed_s.error}>{doc.rejection_reason}</Text>

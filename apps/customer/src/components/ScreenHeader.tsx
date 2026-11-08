@@ -1,6 +1,5 @@
 import { translate as i18nT } from "@datxe/shared";
 import {
-  borderRadius,
   MotionPressable as Pressable,
   spacing,
   Typography as Text,
@@ -9,6 +8,7 @@ import {
   useThemeColors,
   useThemedStyles,
 } from "@datxe/ui";
+import { Appbar } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import type { ComponentProps, ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
@@ -131,145 +131,111 @@ export function ScreenHeader({
   leadingIcon,
   leadingContent,
   rightContent,
-  sideSlotWidth = spacing.iconButtonMd,
+  sideSlotWidth = 48,
   largeTitle = false,
 }: ScreenHeaderProps) {
   useLanguage();
 
-  const colors = useThemeColors();
   const styles = useThemedStyles(makeStyles);
-  const left =
-    leadingContent ??
-    (onBack ? (
-      <HeaderIconButton
-        icon={backIcon}
-        accessibilityLabel={i18nT(backAccessibilityLabel)}
-        onPress={onBack}
-      />
-    ) : leadingIcon ? (
-      <View style={styles.leadingIconBadge} accessible={false}>
-        <MaterialIcons name={leadingIcon} size={22} color={colors.primary} />
-      </View>
-    ) : null);
-
   return (
-    <View style={styles.container}>
-      {leadingContent ? (
-        <View style={styles.leadingContent}>{leadingContent}</View>
-      ) : (
-        <View
-          style={[
-            styles.sideSlot,
-            leadingIcon && !onBack && styles.leadingIconSlot,
-            { width: sideSlotWidth },
-          ]}
-        >
-          {left}
-        </View>
-      )}
-      {!leadingContent ? (
-        <View style={styles.titleBlock}>
-          {title ? (
-            <Text
-              numberOfLines={1}
-              style={[styles.title, largeTitle && styles.largeTitle]}
-            >
-              {i18nT(title)}
-            </Text>
-          ) : null}
-          {subtitle ? (
-            <Text numberOfLines={1} style={styles.subtitle}>
-              {i18nT(subtitle)}
-            </Text>
-          ) : null}
-        </View>
-      ) : null}
-      {rightContent ? (
-        <View
-          style={[styles.sideSlot, styles.rightSlot, { width: sideSlotWidth }]}
-        >
-          {rightContent}
-        </View>
-      ) : !leadingContent ? (
-        <View style={[styles.sideSlot, { width: sideSlotWidth }]} />
-      ) : null}
+    <View style={styles.headerHost}>
+      <Appbar.Header statusBarHeight={0} mode="small" style={styles.container}>
+        {onBack ? (
+          <Appbar.Action
+            isLeading
+            style={styles.leadingAction}
+            icon={(props) => <MaterialIcons {...props} name={backIcon} />}
+            accessibilityLabel={i18nT(backAccessibilityLabel)}
+            onPress={onBack}
+          />
+        ) : leadingIcon ? (
+          <Appbar.Action
+            isLeading
+            style={styles.leadingAction}
+            icon={(props) => <MaterialIcons {...props} name={leadingIcon} />}
+            accessible={false}
+          />
+        ) : null}
+        {leadingContent ? (
+          <View style={styles.leadingContent}>{leadingContent}</View>
+        ) : (
+          <Appbar.Content
+            style={styles.titleBlock}
+            title={
+              <View style={styles.titleCopy}>
+                {title ? (
+                  <Text
+                    accessibilityRole="header"
+                    numberOfLines={2}
+                    style={[styles.title, largeTitle && styles.largeTitle]}
+                  >
+                    {i18nT(title)}
+                  </Text>
+                ) : null}
+                {subtitle ? (
+                  <Text numberOfLines={2} style={styles.subtitle}>
+                    {i18nT(subtitle)}
+                  </Text>
+                ) : null}
+              </View>
+            }
+          />
+        )}
+        {rightContent ? (
+          <View style={[styles.rightSlot, { width: sideSlotWidth }]}>
+            {rightContent}
+          </View>
+        ) : null}
+      </Appbar.Header>
     </View>
   );
 }
 
 const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
   StyleSheet.create({
+    headerHost: { flexShrink: 0, backgroundColor: colors.background },
     container: {
-      height: spacing.headerHeight,
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: spacing.margin,
-      gap: spacing.spaceSm,
-      backgroundColor: colors.surface,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.outlineVariant,
+      minHeight: 64,
+      height: "auto",
+      paddingVertical: 8,
+      paddingHorizontal: 8,
+      backgroundColor: colors.background,
     },
-    sideSlot: {
-      width: spacing.iconButtonMd,
-      height: spacing.iconButtonMd,
-      alignItems: "center",
-      justifyContent: "center",
-      flexShrink: 0,
-    },
+    leadingAction: { width: 48, height: 48, borderRadius: 999 },
     leadingContent: {
       flex: 1,
       minWidth: 0,
     },
-    leadingIconSlot: {
-      alignItems: "flex-start",
-    },
-    leadingIconBadge: {
-      width: spacing.iconButtonSm,
-      height: spacing.iconButtonSm,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: borderRadius.full,
-      backgroundColor: colors.primaryFixedTint,
-    },
-    titleBlock: {
-      flex: 1,
-      minWidth: 0,
-      alignItems: "center",
-      justifyContent: "center",
-    },
+    titleBlock: { flex: 1, minWidth: 0, marginLeft: 8, marginRight: 8 },
+    titleCopy: { minWidth: 0, gap: 4 },
     title: {
-      ...typography.headlineSm,
-      color: colors.onSurface,
-      textAlign: "center",
-    },
-    largeTitle: {
       ...typography.headlineMd,
+      color: colors.onSurface,
+      fontWeight: "600",
+      textAlign: "left",
     },
-    subtitle: {
-      ...typography.labelSm,
-      color: colors.onSurfaceVariant,
-      marginTop: 1,
-    },
+    largeTitle: { fontSize: 24, lineHeight: 32 },
+    subtitle: { ...typography.labelSm, fontSize: 13, lineHeight: 18, color: colors.onSurfaceMuted },
     iconButton: {
-      width: spacing.iconButtonMd,
-      height: spacing.iconButtonMd,
+      width: 48,
+      height: 48,
       alignItems: "center",
       justifyContent: "center",
-      borderRadius: borderRadius.full,
+      borderRadius: 999,
       backgroundColor: colors.surfaceContainerLow,
     },
     compactIconButton: {
-      width: spacing.iconButtonSm,
-      height: spacing.iconButtonSm,
+      width: 48,
+      height: 48,
     },
     labeledIconButton: {
       width: HEADER_SAFETY_ACTION_WIDTH,
-      height: spacing.iconButtonSm,
+      minHeight: 48,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       gap: spacing.gap1,
-      borderRadius: borderRadius.full,
+      borderRadius: 999,
       backgroundColor: colors.surfaceContainerLow,
     },
     labeledIconText: {
@@ -280,7 +246,10 @@ const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
       color: colors.primary,
     },
     rightSlot: {
+      flexShrink: 0,
       alignItems: "flex-end",
+      justifyContent: "center",
+      marginRight: 8,
     },
     actionGroup: {
       flexDirection: "row",

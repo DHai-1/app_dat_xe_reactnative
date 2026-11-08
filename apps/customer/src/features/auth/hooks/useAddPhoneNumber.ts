@@ -1,6 +1,6 @@
 import { translate as i18nT , AuthApiError,DEFAULT_PHONE_COUNTRY,authenticateWithBackend,confirmPhoneCode,getFirebaseUser,isValidInternationalPhoneNumber,sendPhoneCode,signOutFirebase,toInternationalPhoneNumber } from '@datxe/shared';
 import { useRouter } from 'expo-router';
-import { useEffect,useState } from 'react';
+import { useEffect,useRef,useState } from 'react';
 import {
 Keyboard
 } from 'react-native';
@@ -12,7 +12,9 @@ const isGoogleAccount = Boolean(user?.providerData.some((item) => item.providerI
 const isFacebookAccount = Boolean(user?.providerData.some((item) => item.providerId === 'facebook.com'));
 const accountProvider = isGoogleAccount ? 'Google' : isFacebookAccount ? 'Facebook' : 'PtitGo';
 const [country, setCountry] = useState(DEFAULT_PHONE_COUNTRY);
-const [phone, setPhone] = useState('');
+// This ref also preserves the number while the form switches to OTP.
+const phoneDraft = useRef('');
+const [submittedPhone, setSubmittedPhone] = useState('');
 const [otp, setOtp] = useState('');
 const [otpStep, setOtpStep] = useState(false);
 const [invalid, setInvalid] = useState(false);
@@ -26,7 +28,7 @@ const onChangePhone = (value: string) => {
     setInvalid(false);
     setError('');
     setNotice('');
-    setPhone(value);
+    phoneDraft.current = value;
   };
 const finishPhoneLink = async () => {
     const profile = await authenticateWithBackend('customer');
@@ -37,6 +39,7 @@ const finishPhoneLink = async () => {
   };
 const onSubmit = async () => {
     if (submitting) return;
+    const phone = phoneDraft.current;
     if (!user) {
       router.replace('/(auth)/login' as never);
       return;
@@ -67,6 +70,7 @@ const onSubmit = async () => {
         return;
       }
       setOtp('');
+      setSubmittedPhone(phone);
       setOtpStep(true);
     } catch (cause) {
       if (cause instanceof AuthApiError && cause.code === 'ACCOUNT_NOT_FOUND') {
@@ -83,7 +87,7 @@ const resendCode = async () => {
     setError('');
     setNotice('');
     try {
-      const result = await sendPhoneCode(toInternationalPhoneNumber(phone, country), { linkToCurrentAccount: true });
+      const result = await sendPhoneCode(toInternationalPhoneNumber(phoneDraft.current, country), { linkToCurrentAccount: true });
       if (result.autoVerified) {
         await finishPhoneLink();
         return true;
@@ -119,5 +123,5 @@ const changePhone = () => {
     setNotice('');
   };
 
-return { user, router, accountProvider, country, setCountry, phone, setPhone, otp, setOtp, otpStep, invalid, setInvalid, submitting, error, setError, notice, setNotice, onChangePhone, onSubmit, resendCode, switchAccount, changePhone };
+return { user, router, accountProvider, country, setCountry, initialPhone: submittedPhone, otp, setOtp, otpStep, invalid, setInvalid, submitting, error, setError, notice, setNotice, onChangePhone, onSubmit, resendCode, switchAccount, changePhone };
 }

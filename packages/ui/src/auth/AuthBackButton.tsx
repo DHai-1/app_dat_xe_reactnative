@@ -5,7 +5,7 @@ import { MotionPressable as Pressable } from "../components";
 import { useThemeColors, useThemedStyles } from "../theme/ThemeProvider";
 import { useLanguage } from "../useLanguage";
 
-import { borderRadius, fontSize, spacing } from "../theme/colors";
+import { fontSize, spacing } from "../theme/colors";
 
 type Props = {
   onPress: () => void;
@@ -41,9 +41,9 @@ export function AuthBackButton({
 const base_styles = () =>
   StyleSheet.create({
     button: {
-      width: spacing.iconButtonMd,
-      height: spacing.iconButtonMd,
-      borderRadius: borderRadius.full,
+      width: Math.max(48, spacing.iconButtonMd),
+      height: Math.max(48, spacing.iconButtonMd),
+      borderRadius: 999,
       alignItems: "center",
       justifyContent: "center",
     },

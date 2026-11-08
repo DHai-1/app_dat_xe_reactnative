@@ -1,6 +1,6 @@
 import type { PaymentMethod } from "@datxe/shared";
 import { getLocale, translate as i18nT } from "@datxe/shared";
-import { borderRadius, shadowStyle, spacing, typography, useThemeColors } from "@datxe/ui";
+import { spacing, typography, useThemeColors } from "@datxe/ui";
 import { StyleSheet } from "react-native";
 export function countLabel(value: number | null): string {
   return value === null
@@ -42,27 +42,37 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
   StyleSheet.create({
     safeArea: {
       flex: 1,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.background,
     },
     scroll: {
       flex: 1,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.background,
     },
     scrollContent: {
       paddingHorizontal: spacing.margin,
       paddingTop: spacing.spaceLg,
       paddingBottom: spacing.spaceXl,
-      gap: spacing.spaceLg + spacing.spaceXs,
+      gap: 16,
     },
     identityCard: {
-      gap: spacing.spaceLg,
-      padding: spacing.spaceLg,
+      gap: 16,
+      padding: 16,
     },
     identityRow: {
       flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.spaceMd,
+      alignItems: "flex-start",
+      gap: 12,
     },
+    editButton: {
+      margin: 0,
+      width: 48,
+      height: 48,
+      borderRadius: 999,
+      flexShrink: 0,
+      alignSelf: "flex-start",
+      backgroundColor: colors.surfaceContainerHigh,
+    },
+    identityDivider: { backgroundColor: colors.outlineSubtle },
     avatarWrap: {
       flexShrink: 0,
       position: "relative",
@@ -70,8 +80,7 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
     avatar: {
       width: spacing.profileAvatar,
       height: spacing.profileAvatar,
-      borderRadius: borderRadius.full,
-
+      borderRadius: 999,
     },
     avatarFallback: {
       alignItems: "center",
@@ -90,14 +99,14 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
       bottom: 0,
       width: 26,
       height: 26,
-      borderRadius: borderRadius.full,
+      borderRadius: 999,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.primary,
     },
     loadErrorBox: {
-      padding: spacing.spaceSm,
-      borderRadius: borderRadius.lg,
+      padding: 16,
+      borderRadius: 24,
       backgroundColor: colors.errorContainer,
     },
     loadErrorText: {
@@ -120,12 +129,11 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
       maxHeight: "88%",
       alignSelf: "center",
       backgroundColor: colors.surfaceContainerLowest,
-      borderRadius: borderRadius.xl,
-      padding: spacing.spaceMd,
+      borderRadius: 24,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      padding: 16,
       gap: spacing.spaceMd,
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      ...shadowStyle,
     },
     editLabel: {
       ...typography.labelMd,
@@ -141,7 +149,7 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
       minHeight: spacing.buttonHeight,
       borderWidth: 1,
       borderColor: colors.outlineVariant,
-      borderRadius: borderRadius.lg,
+      borderRadius: 24,
       paddingHorizontal: spacing.spaceSm,
       color: colors.onSurface,
       backgroundColor: colors.surface,
@@ -154,13 +162,11 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
     editChoice: {
       paddingHorizontal: spacing.spaceSm,
       paddingVertical: spacing.spaceXs,
-      borderRadius: borderRadius.full,
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
+      borderRadius: 999,
+
       backgroundColor: colors.surface,
     },
     editChoiceSelected: {
-      borderColor: colors.primary,
       backgroundColor: colors.primaryContainer,
     },
     editChoiceText: {
@@ -179,6 +185,9 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
     dialogButtonPrimaryText: {
       ...typography.labelLg,
       color: colors.onPrimary,
+
+      textAlign: "center",
+      flexShrink: 1,
     },
     identityCopy: {
       flex: 1,
@@ -208,22 +217,13 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
       gap: spacing.gap1_5,
       paddingHorizontal: spacing.px2_5,
       paddingVertical: spacing.py0_5,
-      borderRadius: borderRadius.full,
+      borderRadius: 999,
       backgroundColor: colors.tertiaryFixed,
       marginTop: spacing.spaceXs,
     },
     memberPillText: {
       ...typography.labelSm,
       color: colors.onTertiaryFixed,
-    },
-    editButton: {
-      width: spacing.editButton,
-      height: spacing.editButton,
-      borderRadius: borderRadius.full,
-      backgroundColor: colors.surfaceContainer,
-      alignItems: "center",
-      justifyContent: "center",
-      flexShrink: 0,
     },
     statsGrid: {
       flexDirection: "row",
@@ -236,7 +236,7 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
       minHeight: 64,
       paddingHorizontal: spacing.spaceXs,
       paddingVertical: spacing.spaceSm,
-      borderRadius: borderRadius.lg,
+      borderRadius: 24,
       backgroundColor: colors.surfaceContainerLow,
     },
     statValue: {
@@ -254,17 +254,7 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
       color: colors.onSurfaceVariant,
       textAlign: "center",
     },
-    section: {
-      gap: spacing.px3,
-    },
-    sectionLabel: {
-      ...typography.labelMd,
-      color: colors.onSurfaceVariant,
-      textTransform: "uppercase",
-      letterSpacing: spacing.letterSpacingWidest,
-      paddingHorizontal: spacing.spaceXs,
-      marginBottom: spacing.spaceXs,
-    },
+    section: { gap: 0 },
     menuGroup: {
       paddingVertical: spacing.gap1_5,
       paddingHorizontal: spacing.px5,
@@ -294,7 +284,7 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
     menuIconBox: {
       width: spacing.iconButtonSm,
       height: spacing.iconButtonSm,
-      borderRadius: borderRadius.xl,
+      borderRadius: 24,
       alignItems: "center",
       justifyContent: "center",
       flexShrink: 0,
@@ -321,7 +311,7 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
     menuBadge: {
       paddingHorizontal: spacing.px2_5,
       paddingVertical: spacing.py0_5,
-      borderRadius: borderRadius.full,
+      borderRadius: 999,
       backgroundColor: colors.primaryTint,
     },
     menuBadgeHighlighted: {
@@ -354,10 +344,9 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
     logoutButton: {
       width: "100%",
       height: spacing.buttonMdHeight,
-      borderRadius: borderRadius.xl,
+      borderRadius: 999,
       backgroundColor: colors.surfaceContainerLow,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.outlineVariant,
+
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
@@ -372,7 +361,7 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
       height: spacing.buttonMdHeight,
       alignItems: "center",
       justifyContent: "center",
-      borderRadius: borderRadius.xl,
+      borderRadius: 999,
       backgroundColor: colors.error,
     },
     buttonPressed: { opacity: 0.8 },
@@ -386,7 +375,7 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
     legalLinkText: {
       ...typography.labelSm,
       color: colors.primary,
-      textDecorationLine: "underline",
+      textDecorationLine: "none",
     },
     legalSeparator: { ...typography.labelSm, color: colors.onSurfaceVariant },
     deleteAccountText: {
@@ -400,9 +389,6 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
       justifyContent: "space-around",
       paddingHorizontal: spacing.spaceXs,
       backgroundColor: colors.surfaceContainerLowest,
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      ...shadowStyle,
     },
     tabItem: {
       flex: 1,
@@ -417,10 +403,8 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
       right: 0,
       width: spacing.badgeSm,
       height: spacing.badgeSm,
-      borderRadius: borderRadius.full,
+      borderRadius: 999,
       backgroundColor: colors.error,
-      borderWidth: 2,
-      borderColor: colors.surface,
     },
     tabLabel: {
       ...typography.labelSm,
@@ -441,24 +425,22 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
       maxWidth: spacing.modalMaxWidth,
       alignSelf: "center",
       backgroundColor: colors.surfaceContainerLowest,
-      borderRadius: borderRadius.xl,
-      padding: spacing.spaceMd,
+      borderRadius: 24,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: 16,
       gap: spacing.spaceMd,
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      ...shadowStyle,
     },
     deleteDialogCard: {
       width: "100%",
       maxWidth: spacing.modalMaxWidth,
       alignSelf: "center",
       backgroundColor: colors.surfaceContainerLowest,
-      borderRadius: borderRadius.xl,
-      padding: spacing.spaceMd,
+      borderRadius: 24,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: 16,
       gap: spacing.spaceMd,
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      ...shadowStyle,
     },
     deleteDialogText: {
       ...typography.bodyMd,
@@ -468,7 +450,7 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
     dialogIcon: {
       width: spacing.editButton,
       height: spacing.editButton,
-      borderRadius: borderRadius.full,
+      borderRadius: 999,
       backgroundColor: colors.errorContainer,
       alignItems: "center",
       justifyContent: "center",
@@ -493,11 +475,15 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
       gap: spacing.spaceSm,
     },
     dialogButton: {
-      flex: 1,
-      height: spacing.buttonMdHeight,
-      borderRadius: borderRadius.xl,
+      flexGrow: 1,
+      flexBasis: 0,
+      minWidth: 0,
+      height: 48,
+      borderRadius: 999,
       alignItems: "center",
       justifyContent: "center",
+
+      paddingHorizontal: 8,
     },
     dialogButtonGhost: {
       backgroundColor: colors.surfaceContainer,
@@ -505,14 +491,19 @@ export const makeStyles = (colors: ReturnType<typeof useThemeColors>) =>
     dialogButtonGhostText: {
       ...typography.labelLg,
       color: colors.onSurface,
+
+      textAlign: "center",
+      flexShrink: 1,
     },
     dialogButtonDanger: {
       backgroundColor: colors.error,
-
     },
     deleteConfirmButton: { backgroundColor: colors.error },
     dialogButtonDangerText: {
       ...typography.labelLg,
       color: colors.onError,
+
+      textAlign: "center",
+      flexShrink: 1,
     },
   });

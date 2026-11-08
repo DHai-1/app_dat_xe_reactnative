@@ -23,6 +23,8 @@ test('driver throttle limits fast fixes but maintains a stationary heartbeat', (
 });
 test('invalid accuracy, coordinates and stale samples are rejected', () => {
   const now = Date.now();
+  assert.equal(util.validLocationUpdate({ ...fix(now), accuracy: null }), true);
+  assert.equal(util.validLocationUpdate({ ...fix(now), accuracy: undefined }), false);
   assert.equal(util.validLocationUpdate({ ...fix(now), accuracy: -1 }), false);
   assert.equal(util.validLocationUpdate(fix(now, 200)), false);
   assert.equal(util.validLocationUpdate(fix(now - 121000)), false);

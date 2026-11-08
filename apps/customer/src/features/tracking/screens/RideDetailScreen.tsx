@@ -1,3 +1,8 @@
+import { chatStatuses } from "@/lib/customerRidePresentation";
+import { HandoverGallery } from "@/components/HandoverGallery";
+import { CustomerPaymentSummary } from "@/components/CustomerPaymentSummary";
+import { CustomerNotice, RideEndpoints } from "@/components/CustomerRideUI";
+import { ActivityIndicator } from "react-native-paper";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { getLocale, translate as i18nT } from "@datxe/shared";
 import {
@@ -11,12 +16,10 @@ import {
   useThemedStyles,
 } from "@datxe/ui";
 import { MaterialIcons } from "@expo/vector-icons";
-import { ActivityIndicator, Image, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 
 import {
   styles as base_styles,
-  chatStatuses,
-  Row,
   statusLabel,
 } from "../components/RideDetailScreenParts";
 import { useRideDetail } from "../hooks/useRideDetail";
@@ -27,13 +30,13 @@ export default function RideDetailScreen() {
 
   const styles = useThemedStyles(base_styles);
 
-  const { router, ride, error, goBack } = useRideDetail();
+  const { router, ride, error, goBack, refresh, valid } = useRideDetail();
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <ScreenHeader title={i18nT("Chi tiết chuyến")} onBack={goBack} />
       <ScrollView contentContainerStyle={styles.content}>
         {!ride && !error ? <ActivityIndicator color={colors.primary} /> : null}
-        {error ? <Text style={styles.error}>{i18nT(error)}</Text> : null}
+        {error ? <CustomerNotice onRetry={valid ? () => void refresh() : undefined}>{i18nT(error)}</CustomerNotice> : null}
         {ride ? (
           <>
             <Card style={styles.card}>
@@ -56,49 +59,11 @@ export default function RideDetailScreen() {
                 · {i18nT(new Date(ride.createdAt).toLocaleString(getLocale()))}
               </Text>
             </Card>
+            <CustomerPaymentSummary ride={ride} />
             <Card style={styles.card}>
               <Text style={styles.section}>{i18nT("Lộ trình")}</Text>
-              <Text style={styles.label}>{i18nT("ĐIỂM ĐÓN")}</Text>
-              <Text style={styles.body}>
-                {ride.pickupAddress || i18nT("Không có địa chỉ")}
-              </Text>
-              <View style={styles.divider} />
-              <Text style={styles.label}>{i18nT("ĐIỂM ĐẾN")}</Text>
-              <Text style={styles.body}>
-                {ride.dropoffAddress || i18nT("Không có địa chỉ")}
-              </Text>
-              <Text style={styles.meta}>
-                {i18nT(
-                  ride.distanceKm === null
-                    ? "Khoảng cách chưa có"
-                    : `${ride.distanceKm} km`,
-                )}
-              </Text>
-            </Card>
-            <Card style={styles.card}>
-              <Text style={styles.section}>{i18nT("Thanh toán")}</Text>
-              <Row
-                label={i18nT("Giá ước tính")}
-                value={i18nT("{0} đ", {
-                  "0": ride.estimatedFare.toLocaleString(getLocale()),
-                })}
-              />
-              {ride.finalFare !== null ? (
-                <Row
-                  label={i18nT("Giá cuối cùng")}
-                  value={i18nT("{0} đ", {
-                    "0": ride.finalFare.toLocaleString(getLocale()),
-                  })}
-                />
-              ) : null}
-              {ride.discountAmount ? (
-                <Row
-                  label={i18nT("Giảm giá")}
-                  value={i18nT("{0} đ", {
-                    "0": ride.discountAmount.toLocaleString(getLocale()),
-                  })}
-                />
-              ) : null}
+              <RideEndpoints pickup={ride.pickupAddress} dropoff={ride.dropoffAddress} />
+              {ride.distanceKm != null ? <Text style={styles.meta}>{ride.distanceKm} km</Text> : null}
             </Card>
             <Card style={styles.card}>
               <Text style={styles.section}>{i18nT("Trạng thái chuyến")}</Text>
@@ -113,7 +78,6 @@ export default function RideDetailScreen() {
                       {i18nT(
                         new Date(entry.createdAt).toLocaleString(getLocale()),
                       )}{" "}
-                      · {i18nT(entry.actorRole || "SYSTEM")}
                       {i18nT(entry.note ? ` · ${entry.note}` : "")}
                     </Text>
                   </View>
@@ -127,7 +91,7 @@ export default function RideDetailScreen() {
                   {i18nT(report.phase === "PICKUP" ? "nhận xe" : "trả xe")}
                 </Text>
                 <Text style={styles.meta}>
-                  Odometer {i18nT(report.odometer.toLocaleString(getLocale()))}{" "}
+                  {i18nT("Số km đồng hồ")} · {i18nT(report.odometer.toLocaleString(getLocale()))}{" "}
                   km
                   {i18nT(
                     report.fuelLevel === null
@@ -145,18 +109,19 @@ export default function RideDetailScreen() {
                       : "Chưa được bạn xác nhận",
                   )}
                 </Text>
-                <View style={styles.images}>
-                  {report.photos.map((photo) => (
-                    <Image
-                      key={photo.id}
-                      source={{ uri: photo.fileUrl }}
-                      style={styles.image}
-                    />
-                  ))}
-                </View>
+                <HandoverGallery photos={report.photos} />
               </View>
             ))}
-            {!["COMPLETED", "CANCELLED", "NO_DRIVER_FOUND", "EXPIRED"].includes(
+            {ride.status === "COMPLETED" ? (
+              <Button
+                label={i18nT("Xem tổng kết chuyến")}
+                onPress={() => router.push({
+                  pathname: "/ride/completed",
+                  params: { rideId: String(ride.id) },
+                })}
+              />
+            ) : null}
+            {!["COMPLETED", "CANCELLED", "NO_DRIVER_FOUND", "EXPIRED", "FAILED_SYSTEM"].includes(
               ride.status,
             ) ? (
               <Button

@@ -1,9 +1,10 @@
+import { ActivityIndicator } from "react-native-paper";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { translate as i18nT } from "@datxe/shared";
 import {
   Button,
   localizedAlert,
-  MotionPressable as Pressable,
+  Card,
   ScreenWrapper as SafeAreaView,
   Typography as Text,
   useLanguage,
@@ -12,7 +13,7 @@ import {
 } from "@datxe/ui";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 
 import { accountStyles } from "../components/AccountScreenStyles";
 import { useProfileEditor } from "../hooks/useProfileEditor";
@@ -46,20 +47,8 @@ export default function PaymentMethodsScreen() {
         <Text style={s.intro}>
           {i18nT("Chọn cách thanh toán cho những chuyến đi của bạn.")}
         </Text>
-        <Text style={s.section}>{i18nT("PHƯƠNG THỨC KHẢ DỤNG")}</Text>
-        <Pressable
-          onPress={() => {
-            if (!selected && query.data && !save.isPending) void confirm();
-          }}
-          disabled={!query.data || save.isPending}
-          style={[
-            s.card,
-            { borderColor: selected ? c.primary : c.outlineVariant },
-          ]}
-          accessibilityRole="radio"
-          accessibilityState={{ selected }}
-          accessibilityLabel={i18nT("Tiền mặt")}
-        >
+        <Text style={s.section}>{i18nT("Phương thức khả dụng")}</Text>
+        <Card style={s.card}>
           <View style={s.row}>
             <View style={s.icon}>
               <MaterialIcons name="payments" size={26} color={c.primary} />
@@ -76,10 +65,10 @@ export default function PaymentMethodsScreen() {
             </View>
             <MaterialIcons
               name={
-                selected ? "radio-button-checked" : "radio-button-unchecked"
+                selected ? "check-circle" : "payments"
               }
               size={24}
-              color={selected ? c.primary : c.outline}
+              color={selected ? c.successStrong : c.onSurfaceVariant}
             />
           </View>
           <Text style={s.intro}>
@@ -87,7 +76,7 @@ export default function PaymentMethodsScreen() {
               "Thanh toán cho tài xế khi kết thúc chuyến đi, theo số tiền hiển thị trong ứng dụng.",
             )}
           </Text>
-        </Pressable>
+        </Card>
         {query.isLoading ? <ActivityIndicator color={c.primary} /> : null}
         {query.error ? (
           <>
@@ -104,7 +93,7 @@ export default function PaymentMethodsScreen() {
           </Text>
         ) : null}
       </ScrollView>
-      <View style={s.footer}>
+      {query.data && !selected ? <View style={s.footer}>
         <Button
           label={i18nT(
             selected ? "Đã chọn tiền mặt" : "Dùng tiền mặt mặc định",
@@ -113,12 +102,12 @@ export default function PaymentMethodsScreen() {
           loading={save.isPending}
           onPress={() => void confirm()}
         />
-      </View>
+      </View> : null}
     </SafeAreaView>
   );
 }
 
 const extraStyles = () =>
   StyleSheet.create({
-    item1: { flex: 1, gap: 5 },
+    item1: { flex: 1, gap: 8 },
   });

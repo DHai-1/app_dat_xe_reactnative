@@ -1,6 +1,7 @@
+import { ActivityIndicator } from "react-native-paper";
 import { translate as i18nT } from "@datxe/shared";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import {
   MotionPressable as Pressable,
   Typography as Text,
@@ -9,7 +10,7 @@ import type { ThemeColors } from "../theme/ThemeProvider";
 import { useThemeColors, useThemedStyles } from "../theme/ThemeProvider";
 import { useLanguage } from "../useLanguage";
 
-import { borderRadius, spacing, typography } from "../theme/colors";
+import { spacing, typography } from "../theme/colors";
 
 type Props = {
   onResend: () => Promise<boolean>;
@@ -87,18 +88,19 @@ export function ResendOtpButton({
 const base_styles = (colors: ThemeColors) =>
   StyleSheet.create({
     button: {
-      minHeight: 44,
+      minHeight: 48,
+      minWidth: 48,
       alignSelf: "flex-start",
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.spaceSm,
       paddingVertical: spacing.spaceXs,
       paddingHorizontal: spacing.spaceXs,
-      borderRadius: borderRadius.default,
+      borderRadius: 999,
     },
     buttonPressed: {
       backgroundColor: colors.primaryTint,
     },
-    label: { ...typography.bodyMdMedium, color: colors.onSurfaceVariant },
+    label: { ...typography.bodyMdMedium, color: colors.onSurfaceVariant, fontVariant: ["tabular-nums"] },
     labelEnabled: { color: colors.primary, fontWeight: "600" },
   });

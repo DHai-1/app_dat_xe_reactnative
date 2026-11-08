@@ -1,7 +1,6 @@
 import { translate as i18nT } from "@datxe/shared";
 import type { ThemeColors } from "@datxe/ui";
 import {
-  borderRadius,
   MotionPressable as Pressable,
   spacing,
   Typography as Text,
@@ -15,6 +14,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { StyleSheet, View } from "react-native";
 export function Field({
   label,
+  value,
   ...props
 }: {
   label: string;
@@ -36,6 +36,7 @@ export function Field({
       <Text style={themed_styles.label}>{i18nT(label)}</Text>
       <TextInput
         {...props}
+        draftValue={value}
         style={themed_styles.input}
         placeholderTextColor={colors.outline}
       />
@@ -60,6 +61,8 @@ export function Choice({
 
   return (
     <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ selected: active }}
       onPress={onPress}
       style={[themed_styles.choice, active && themed_styles.choiceActive]}
     >
@@ -82,32 +85,34 @@ export function Choice({
 
 export const styles = (colors: ThemeColors) =>
   StyleSheet.create({
-    safe: { flex: 1, backgroundColor: colors.surface },
+    safe: { flex: 1, backgroundColor: colors.background },
+    fill: { flex: 1 },
+    card: { gap: 12 },
+    footer: { padding: 16, backgroundColor: colors.cardSurface },
     content: { padding: spacing.margin, gap: 16, paddingBottom: 34 },
     intro: { ...typography.bodyMd, color: colors.onSurfaceVariant },
-    group: { gap: 7 },
+    group: { gap: 8 },
     label: { ...typography.labelMd, color: colors.onSurface },
     input: {
-      ...typography.bodyMd,
+      ...typography.bodyLg,
+      minHeight: 48,
       color: colors.onSurface,
       borderWidth: 1,
       borderColor: colors.outlineVariant,
-      borderRadius: borderRadius.lg,
-      backgroundColor: colors.surfaceContainerLowest,
+      borderRadius: 24,
+      backgroundColor: colors.inputSurface,
       paddingHorizontal: 13,
       paddingVertical: 12,
     },
-    choices: { flexDirection: "row", gap: 10 },
+    choices: { flexDirection: "row", gap: 8 },
     photoPicker: {
       minHeight: 74,
       flexDirection: "row",
       alignItems: "center",
       gap: 12,
       padding: 10,
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
-      borderStyle: "dashed",
-      borderRadius: borderRadius.lg,
+
+      borderRadius: 24,
       backgroundColor: colors.surfaceContainerLowest,
     },
     existingImageRow: {
@@ -116,16 +121,16 @@ export const styles = (colors: ThemeColors) =>
       alignItems: "center",
       gap: 12,
       padding: 8,
-      borderRadius: borderRadius.lg,
+      borderRadius: 24,
       backgroundColor: colors.surfaceContainerLowest,
     },
     deleteImage: {
-      width: 40,
-      height: 44,
+      width: 48,
+      height: 48,
       alignItems: "center",
       justifyContent: "center",
     },
-    photoPreview: { width: 52, height: 52, borderRadius: borderRadius.lg },
+    photoPreview: { width: 52, height: 52, borderRadius: 24 },
     photoText: {
       ...typography.bodyMd,
       color: colors.onSurfaceVariant,
@@ -138,21 +143,19 @@ export const styles = (colors: ThemeColors) =>
       alignItems: "center",
       justifyContent: "center",
       gap: 8,
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
-      borderRadius: borderRadius.lg,
+
+      borderRadius: 999,
       backgroundColor: colors.surfaceContainerLowest,
       paddingHorizontal: 6,
     },
     choiceActive: {
-      borderColor: colors.primary,
       backgroundColor: colors.primaryFixedTint,
     },
     choiceText: { ...typography.labelMd, color: colors.onSurfaceVariant },
     choiceTextActive: { color: colors.primary },
     primary: {
       minHeight: 54,
-      borderRadius: borderRadius.full,
+      borderRadius: 999,
       backgroundColor: colors.primary,
       alignItems: "center",
       justifyContent: "center",

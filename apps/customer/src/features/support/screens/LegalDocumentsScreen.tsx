@@ -1,14 +1,6 @@
 import { translate as i18nT } from "@datxe/shared";
 import type { ThemeColors } from "@datxe/ui";
-import {
-  borderRadius,
-  ScreenWrapper as SafeAreaView,
-  spacing,
-  Typography as Text,
-  typography,
-  useLanguage,
-  useThemedStyles,
-} from "@datxe/ui";
+import { Button, ScreenWrapper as SafeAreaView, spacing, Typography as Text, typography, useLanguage, useThemedStyles } from "@datxe/ui";
 import { useRouter } from "expo-router";
 import { ScrollView, StyleSheet, View } from "react-native";
 
@@ -102,7 +94,7 @@ const PRIVACY_SECTIONS: LegalSection[] = [
     title: "3. Chia sẻ với bên liên quan",
     paragraphs: [
       "Thông tin cần thiết của chuyến được chia sẻ với tài xế được ghép để hoàn thành chuyến. Nhân sự quản trị có thể truy cập dữ liệu cần thiết để vận hành dịch vụ, xử lý tranh chấp và bảo đảm an toàn.",
-      "Ứng dụng sử dụng nhà cung cấp kỹ thuật cho xác thực và thông báo (Firebase), bản đồ (Mapbox) và lưu trữ hình ảnh (Cloudinary) khi bạn dùng các tính năng tương ứng. Dữ liệu cũng có thể được cung cấp khi pháp luật yêu cầu.",
+      "Ứng dụng sử dụng nhà cung cấp kỹ thuật cho xác thực và thông báo (Firebase), bản đồ (Goong) và lưu trữ hình ảnh (Cloudinary) khi bạn dùng các tính năng tương ứng. Dữ liệu cũng có thể được cung cấp khi pháp luật yêu cầu.",
     ],
   },
   {
@@ -217,14 +209,7 @@ function LegalDocumentScreen({
           <Text style={styles.otherDocumentText}>
             {i18nT("Bạn cũng có thể xem")}
           </Text>
-          <Text
-            accessibilityRole="link"
-            onPress={() => router.push(otherDocumentPath as never)}
-            style={styles.link}
-          >
-            {i18nT(otherDocumentTitle)}
-          </Text>
-          <Text style={styles.otherDocumentText}>.</Text>
+          <Button variant="secondary" label={i18nT(otherDocumentTitle)} onPress={() => router.push(otherDocumentPath)} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -233,25 +218,25 @@ function LegalDocumentScreen({
 
 const base_styles = (colors: ThemeColors) =>
   StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: colors.surface },
+    safeArea: { flex: 1, backgroundColor: colors.background },
     content: {
       paddingHorizontal: spacing.margin,
       paddingTop: spacing.spaceMd,
       paddingBottom: spacing.spaceXl,
       gap: spacing.spaceLg,
     },
-    updated: { ...typography.labelSm, color: colors.onSurfaceVariant },
+    updated: { ...typography.labelSm, fontSize: 13, color: colors.onSurfaceVariant },
     intro: {
       ...typography.bodyLg,
       color: colors.onSurface,
       backgroundColor: colors.primaryFixedTint,
-      padding: spacing.spaceMd,
-      borderRadius: borderRadius.lg,
+      padding: 16,
+      borderRadius: 24,
     },
     section: { gap: spacing.spaceSm },
     sectionTitle: { ...typography.headlineSm, color: colors.onSurface },
     body: {
-      ...typography.bodyMd,
+      ...typography.bodyLg,
       color: colors.onSurfaceVariant,
       lineHeight: 24,
     },
@@ -263,20 +248,14 @@ const base_styles = (colors: ThemeColors) =>
     bullet: {
       width: 6,
       height: 6,
-      borderRadius: borderRadius.full,
+      borderRadius: 24,
       backgroundColor: colors.primary,
       marginTop: spacing.spaceSm,
     },
     bulletText: { flex: 1 },
     otherDocument: {
-      flexDirection: "row",
-      flexWrap: "wrap",
+      gap: 8,
       paddingTop: spacing.spaceSm,
     },
     otherDocumentText: { ...typography.bodyMd, color: colors.onSurfaceVariant },
-    link: {
-      ...typography.bodyMd,
-      color: colors.primary,
-      textDecorationLine: "underline",
-    },
   });

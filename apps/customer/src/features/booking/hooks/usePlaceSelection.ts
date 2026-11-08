@@ -7,7 +7,7 @@ import { Keyboard } from 'react-native';
 import { getCustomerRides, resolveBookingPlace, searchBookingPlaces } from '../api';
 import { useBookingDraft } from '../store';
 import type { PlaceSuggestion, PlaceKind } from '../types';
-import { useDebouncedValue } from './useDebouncedValue';
+import { useDebouncedTextChange } from '@datxe/ui';
 import { useDeviceLocation } from './useDeviceLocation';
 import { useSearchProximity } from './useSearchProximity';
 
@@ -17,22 +17,28 @@ export function usePlaceSelection(kind: PlaceKind) {
   const params = useLocalSearchParams<{ edit?: string }>();
   const edit = params.edit === '1';
   const draft = useBookingDraft();
-  const [text, setText] = useState(kind === 'dropoff' ? draft.destinationHint : '');
-  const queryText = text.trim();
-  // Chuẩn hoá trước khi đưa vào queryKey để gõ thừa dấu cách / hoa thường không tạo thêm request.
-  const normalizedText = queryText.replace(/\s+/g, ' ').toLowerCase();
-  const debounced = useDebouncedValue(normalizedText, 400);
+  const [initialText] = useState(() => kind === 'dropoff' ? draft.destinationHint : '');
+  const [text, setText] = useState(initialText);
+  const normalizedText = text.trim().replace(/\s+/g, ' ').toLowerCase();
   const proximity = useSearchProximity(draft.pickup?.coordinate);
   const [selectingId, setSelectingId] = useState<string | null>(null);
   const [selectionError, setSelectionError] = useState('');
   const selecting = useRef(false);
   const selectionRequest = useRef<AbortController | null>(null);
   useEffect(() => () => { selectionRequest.current?.abort(); }, []);
-  const searching = normalizedText.length >= 2 && normalizedText !== debounced;
-  const canSearch = normalizedText.length >= 2 && !searching;
+  const input = useDebouncedTextChange((value) => {
+    setText(value);
+    setSelectionError('');
+  });
+  const clearText = () => {
+    input.cancel();
+    setText('');
+    setSelectionError('');
+  };
+  const canSearch = normalizedText.length >= 2;
   const search = useQuery({
-    queryKey: ['customer', 'placeSearchV3', debounced, proximity?.lat, proximity?.lng],
-    queryFn: ({ signal }) => searchBookingPlaces(debounced, proximity, signal),
+    queryKey: ['customer', 'placeSearchV3', normalizedText, proximity?.lat, proximity?.lng],
+    queryFn: ({ signal }) => searchBookingPlaces(normalizedText, proximity, signal),
     enabled: canSearch,
     retry: false,
     // Giữ kết quả cũ khi gõ tiếp (danh sách không nhấp nháy) và cache 5 phút để
@@ -60,5 +66,5 @@ export function usePlaceSelection(kind: PlaceKind) {
   };
   const useCurrentLocation = async () => { if (selecting.current) return; const place = await device.locate(); if (place) await select(place); };
   const openMap = () => { if (selecting.current) return; Keyboard.dismiss(); router.push({ pathname: '/ride/map-picker', params: { kind, edit: edit ? '1' : '0' } }); };
-  return { savedPlaces:settings.places.map(p=>({id:p.id,name:p.name,address:p.address,coordinate:{lat:p.lat,lng:p.lng}})), router, text, setText: (value: string) => { setText(value); setSelectionError(''); }, selected: draft[kind], pickup: draft.pickup, results: canSearch ? search.data?.places ?? [] : [], limitedCoverage: canSearch && search.data?.limitedCoverage, provider: canSearch ? search.data?.provider : undefined, loading: searching || (canSearch && search.isFetching), error: selectionError || (canSearch ? search.error?.message : ''), selectingId, recentAddresses, select, openMap, useCurrentLocation, ...device };
+  return { savedPlaces:settings.places.map(p=>({id:p.id,name:p.name,address:p.address,coordinate:{lat:p.lat,lng:p.lng}})), router, text, initialText, onChangeText: input.onChangeText, clearText, selected: draft[kind], pickup: draft.pickup, results: canSearch ? search.data?.places ?? [] : [], limitedCoverage: canSearch && search.data?.limitedCoverage, provider: canSearch ? search.data?.provider : undefined, loading: canSearch && search.isFetching, error: selectionError || (canSearch ? search.error?.message : ''), selectingId, recentAddresses, select, openMap, useCurrentLocation, ...device };
 }

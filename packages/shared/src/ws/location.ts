@@ -1,9 +1,9 @@
 import type { RideCoordinates } from '../types';
-export type DriverLocationUpdate = { location: RideCoordinates; timestamp: string; accuracy: number; receivedAt?: string };
+export type DriverLocationUpdate = { location: RideCoordinates; timestamp: string; accuracy: number | null; receivedAt?: string };
 export function validLocationUpdate(value: unknown, now = Date.now()): value is DriverLocationUpdate {
   const point = value as DriverLocationUpdate | null;
   const time = Date.parse(point?.timestamp ?? '');
-  return Boolean(point && Number.isFinite(point.location?.lat) && Math.abs(point.location.lat) <= 90 && Number.isFinite(point.location?.lng) && Math.abs(point.location.lng) <= 180 && Number.isFinite(point.accuracy) && point.accuracy >= 0 && point.accuracy <= 10000 && Number.isFinite(time) && time <= now + 30000 && time >= now - 120000);
+  return Boolean(point && Number.isFinite(point.location?.lat) && Math.abs(point.location.lat) <= 90 && Number.isFinite(point.location?.lng) && Math.abs(point.location.lng) <= 180 && (point.accuracy === null || (Number.isFinite(point.accuracy) && point.accuracy >= 0 && point.accuracy <= 10000)) && Number.isFinite(time) && time <= now + 30000 && time >= now - 120000);
 }
 export function shouldPublishLocation(previous: DriverLocationUpdate | null, next: DriverLocationUpdate, intervalMs = 4000, minDistanceMeters = 10): boolean {
   if (!validLocationUpdate(next)) return false;

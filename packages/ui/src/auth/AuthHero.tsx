@@ -6,7 +6,7 @@ import type { ThemeColors } from "../theme/ThemeProvider";
 import { useThemeColors, useThemedStyles } from "../theme/ThemeProvider";
 import { useLanguage } from "../useLanguage";
 
-import { borderRadius, fontSize, spacing, typography } from "../theme/colors";
+import { fontSize, spacing, typography } from "../theme/colors";
 
 type Props = {
   icon: keyof typeof MaterialIcons.glyphMap;
@@ -51,7 +51,7 @@ const base_styles = (colors: ThemeColors) =>
     iconCircle: {
       width: 72,
       height: 72,
-      borderRadius: borderRadius.full,
+      borderRadius: 24,
       backgroundColor: colors.primary10,
       alignItems: "center",
       justifyContent: "center",

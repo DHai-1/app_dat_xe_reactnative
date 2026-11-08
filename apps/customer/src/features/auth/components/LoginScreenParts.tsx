@@ -1,7 +1,6 @@
 import { AuthApiError, translate as i18nT } from "@datxe/shared";
 import type { ThemeColors } from "@datxe/ui";
 import {
-  borderRadius,
   MotionPressable as Pressable,
   spacing,
   Typography as Text,
@@ -86,6 +85,7 @@ export const styles = (colors: ThemeColors) =>
       paddingTop: spacing.spaceXl,
       paddingBottom: spacing.spaceLg,
     },
+    brandLogo: { width: 80, height: 80, marginBottom: spacing.spaceLg },
     heading: {
       ...typography.headlineXlMobile,
       color: colors.onSurface,
@@ -127,10 +127,9 @@ export const styles = (colors: ThemeColors) =>
     },
     socialButton: {
       minHeight: spacing.buttonPillHeight,
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
-      borderRadius: borderRadius.xl,
-      backgroundColor: colors.surfaceContainerLowest,
+
+      borderRadius: 999,
+      backgroundColor: colors.surfaceContainerHigh,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
@@ -149,10 +148,13 @@ export const styles = (colors: ThemeColors) =>
     },
     terms: {
       ...typography.labelSm,
+      fontSize: 13,
       color: colors.onSurfaceVariant,
       textAlign: "center",
       lineHeight: 18,
     },
+    termsActions: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", columnGap: 8 },
+    termsTarget: { minHeight: 48, minWidth: 48, paddingHorizontal: 8, justifyContent: "center" },
     termsLink: {
       color: colors.primary,
       fontWeight: "600",

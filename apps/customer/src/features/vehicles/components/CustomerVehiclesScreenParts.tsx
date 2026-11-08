@@ -1,34 +1,35 @@
 import type { ThemeColors } from "@datxe/ui";
-import { borderRadius, spacing, typography } from "@datxe/ui";
+import { spacing, typography } from "@datxe/ui";
 import { StyleSheet } from "react-native";
 export const styles = (colors: ThemeColors) =>
   StyleSheet.create({
-    safe: { flex: 1, backgroundColor: colors.surface },
-    content: { padding: spacing.margin, gap: 12, paddingBottom: 30 },
+    safe: { flex: 1, backgroundColor: colors.background },
+    content: { padding: spacing.margin, gap: 12, paddingBottom: 32 },
     vehicle: {
       flexDirection: "row",
       alignItems: "center",
       gap: 12,
-      padding: 13,
-      borderRadius: borderRadius.lg,
+      paddingVertical: 16,
+      paddingHorizontal: 0,
+      borderRadius: 24,
       backgroundColor: colors.surfaceContainerLowest,
     },
-    image: { width: 60, height: 60, borderRadius: borderRadius.lg },
+    image: { width: 60, height: 60, borderRadius: 24 },
     imagePlaceholder: {
       width: 60,
       height: 60,
-      borderRadius: borderRadius.lg,
+      borderRadius: 24,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.primaryFixedTint,
     },
-    details: { flex: 1, gap: 3 },
+    details: { flex: 1, minWidth: 48, minHeight: 48, justifyContent: "center", gap: 3 },
     name: { ...typography.labelLg, color: colors.onSurface },
     plate: { ...typography.labelMd, color: colors.primary },
     meta: { ...typography.bodyMd, color: colors.onSurfaceVariant },
     delete: {
-      width: 38,
-      height: 42,
+      width: 48,
+      height: 48,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -38,7 +39,7 @@ export const styles = (colors: ThemeColors) =>
       alignItems: "center",
       justifyContent: "center",
       gap: 8,
-      borderRadius: borderRadius.full,
+      borderRadius: 999,
       backgroundColor: colors.primary,
     },
     addText: { ...typography.labelLg, color: colors.onPrimary },

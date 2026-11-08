@@ -4,5 +4,5 @@ import { useRouter } from 'expo-router';
 import { getCustomerVouchers } from '../api';
 export function useCustomerVouchers() {
  const router=useRouter();const query=useQuery({queryKey:['customer','getCustomerVouchers'],queryFn:getCustomerVouchers});useRefreshOnFocus(query.refetch);
- return {router,vouchers:query.data ?? [],loading:query.isLoading,error:query.error?.message ?? ''};
+ return {router,vouchers:query.data ?? [],loading:query.isLoading,error:query.error?.message ?? '',refresh:query.refetch};
 }

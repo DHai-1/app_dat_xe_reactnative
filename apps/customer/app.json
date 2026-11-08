@@ -17,7 +17,7 @@
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundColor": "#FFFFFF",
+        "backgroundColor": "#FF4752",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       }
     },
@@ -30,8 +30,8 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FF4757",
-          "image": "./assets/images/brand-logo.png",
+          "backgroundColor": "#FF4752",
+          "image": "./assets/images/splash-icon.png",
           "imageWidth": 160
         }
       ],
@@ -62,8 +62,9 @@
         }
       },
       "eas": {
-        "projectId": "e2bbaed7-3b76-4729-80ff-4791800a925d"
+        "projectId": "08bea57c-6510-4a87-8643-d5a1e96a52bd"
       }
-    }
+    },
+    "owner": "haidoan1s-team"
   }
 }

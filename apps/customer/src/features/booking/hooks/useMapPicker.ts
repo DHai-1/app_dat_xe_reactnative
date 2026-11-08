@@ -1,61 +1,76 @@
 import type { RideCoordinates } from '@datxe/shared';
-import { useQuery } from '@tanstack/react-query';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { reverseBookingPlace } from '../api';
 import { DEFAULT_MAP_CENTER } from '../bookingUtils';
+import { MapPinResolver, type PinSelection } from '../mapPinResolver';
 import { useBookingDraft } from '../store';
+import type { BookingPlace } from '../types';
 import { useDeviceLocation } from './useDeviceLocation';
+
+const addressCache = new Map<string, BookingPlace>();
 
 export function useMapPicker() {
   const router = useRouter();
+  const focused = useIsFocused();
   const params = useLocalSearchParams<{ kind?: string; edit?: string }>();
   const kind = params.kind === 'dropoff' ? 'dropoff' : 'pickup';
   const draft = useBookingDraft();
   const [center, setCenter] = useState(draft[kind]?.coordinate ?? draft.pickup?.coordinate ?? DEFAULT_MAP_CENTER);
-  const [point, setPoint] = useState<RideCoordinates | null>(null);
+  const [cameraVersion, setCameraVersion] = useState(0);
+  const cameraMoving = useRef(false);
   const [mapReady, setMapReady] = useState(false);
-  const [mapMoving, updateMapMoving] = useState(false);
-  const pointKey = point ? `${point.lat.toFixed(5)},${point.lng.toFixed(5)}` : '';
-  const [selection, setSelection] = useState<{ key: string; point: RideCoordinates } | null>(null);
-  useEffect(() => {
-    if (mapMoving || !point || !mapReady) return;
-    // Chờ bản đồ dừng hẳn rồi mới geocode: 1 lần gọi Goong cho mỗi lần thả tay.
-    const timer = setTimeout(() => setSelection(previous => previous?.key === pointKey ? previous : { key: pointKey, point }), 450);
-    return () => clearTimeout(timer);
-  }, [mapMoving, point, pointKey, mapReady]);
-  // Tự thoát trạng thái "đang di chuyển" nếu Mapbox không bắn onMapIdle,
-  // để màn ghim không kẹt ở "Đang xác định địa chỉ…".
-  const movingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const setMapMoving = useCallback((value: boolean) => {
-    if (movingTimer.current) clearTimeout(movingTimer.current);
-    if (!value) {
-      updateMapMoving(false);
-      return;
-    }
-    updateMapMoving(true);
-    movingTimer.current = setTimeout(() => updateMapMoving(false), 900);
-  }, []);
-  useEffect(() => () => {
-    if (movingTimer.current) clearTimeout(movingTimer.current);
-  }, []);
-  const moving = !selection || pointKey !== selection.key;
-  const query = useQuery({
-    queryKey: ['map-picker-address', selection?.key],
-    queryFn: ({ signal }) => reverseBookingPlace(selection!.point, signal),
-    enabled: Boolean(selection), staleTime: Infinity, gcTime: 300_000,
-    retry: false, retryOnMount: false, refetchOnMount: false,
-    refetchOnWindowFocus: false, refetchOnReconnect: false,
-  });
+  const [selection, setSelection] = useState<PinSelection>({ phase: 'waiting', point: null, place: null, error: '' });
+  const [resolver] = useState(() => new MapPinResolver(reverseBookingPlace, addressCache, setSelection));
+  const idlePoint = useRef<RideCoordinates | null>(null);
+  const enabled = useRef(false);
   const device = useDeviceLocation();
-  const recenter = async () => { const place = await device.locate(); if (place) setCenter(place.coordinate); };
-  const movePin = useCallback((next: RideCoordinates) => setPoint(previous => previous && Math.abs(previous.lat - next.lat) < 0.000005 && Math.abs(previous.lng - next.lng) < 0.000005 ? previous : next), []);
-  const canConfirm = mapReady && !mapMoving && !device.locating && !moving && !query.isFetching && Boolean(query.data) && !query.isError;
+
+  useEffect(() => {
+    enabled.current = focused && mapReady;
+    if (enabled.current && !cameraMoving.current && idlePoint.current) resolver.idle(idlePoint.current);
+    else resolver.cancel();
+    return () => { enabled.current = false; resolver.cancel(); };
+  }, [focused, mapReady, resolver]);
+
+  const setMapMoving = useCallback((moving: boolean) => {
+    cameraMoving.current = moving;
+    if (moving) resolver.moving();
+  }, [resolver]);
+  // Map adapters emit center changes only when their camera has fully stopped.
+  const movePin = useCallback((point: RideCoordinates) => {
+    cameraMoving.current = false;
+    idlePoint.current = point;
+    if (enabled.current) resolver.idle(point);
+  }, [resolver]);
+  const recenter = async () => {
+    resolver.moving();
+    const point = await device.locateCoordinates();
+    if (point && enabled.current) {
+      setCenter(point);
+      setCameraVersion(value => value + 1);
+    } else if (enabled.current && !cameraMoving.current && idlePoint.current) resolver.idle(idlePoint.current);
+  };
+  const canConfirm = focused && mapReady && !device.locating && selection.phase === 'ready' && Boolean(selection.place);
   const confirm = () => {
-    if (!canConfirm || !query.data || !point) return;
-    draft.setPlace(kind, { ...query.data, coordinate: point });
+    if (!canConfirm || !selection.place) return;
+    draft.setPlace(kind, selection.place);
     if (params.edit === '1') router.dismissTo('/ride/confirm');
     else router.replace(kind === 'pickup' ? '/ride/destination' : '/ride/vehicle');
   };
-  return { router, kind, center, movePin, setMapReady, setMapMoving, mapReady, place: moving || mapMoving ? null : query.data, resolving: mapMoving || moving || query.isFetching, error: query.error?.message ?? device.locationError, canConfirm, confirm, recenter, locating: device.locating };
+  return {
+    router, kind, center, cameraVersion, movePin, setMapReady, setMapMoving, mapReady,
+    mapMoving: selection.phase === 'moving',
+    place: selection.phase === 'ready' ? selection.place : null,
+    resolving: ['waiting', 'moving', 'debouncing', 'resolving'].includes(selection.phase),
+    error: selection.error || device.locationError,
+    retryable: selection.phase === 'error',
+    retry: () => {
+      if (enabled.current && !cameraMoving.current && idlePoint.current) {
+        resolver.cancel();
+        resolver.idle(idlePoint.current);
+      }
+    },
+    canConfirm, confirm, recenter, locating: device.locating,
+  };
 }

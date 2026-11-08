@@ -2,8 +2,8 @@
 
 ## File tạo
 - apps/customer/src/app/settings/index.tsx và [section].tsx: route mỏng /settings và /settings/:section.
-- apps/customer/src/features/settings/screens/SettingsScreen.tsx: sáu mục và các màn con giao diện, thông báo, quyền, địa điểm, tài khoản, ứng dụng.
-- apps/customer/src/features/settings/api.ts: gọi API xóa tài khoản cũ và autocomplete/detail hiện có.
+- apps/customer/src/features/settings/screens/SettingsScreen.tsx: năm mục và các màn con giao diện, thông báo, quyền, địa điểm, ứng dụng.
+- apps/customer/src/features/settings/api.ts: gọi autocomplete/detail hiện có.
 - apps/customer/src/lib/settings/{SettingsProvider.tsx,i18n.ts}: lưu theo UID, hydrate trước render, dùng chung giữa feature.
 - packages/ui/src/theme/ThemeProvider.tsx: ThemeProvider/useTheme/useThemeColors, sẵn dùng cho driver.
 
@@ -25,7 +25,7 @@ Quyền location/camera/notifications đọc lại khi quay về từ hệ thố
 
 ## Cách test
 1. npm install; build customer bằng npm run android -w customer (có thay đổi native).
-2. Hồ sơ > Cài đặt: vào đủ 6 mục, Back về Hồ sơ, kiểm tra nội dung cũ còn nguyên.
+2. Hồ sơ > Cài đặt: vào đủ 5 mục, Back về Hồ sơ, kiểm tra nội dung cũ còn nguyên.
 3. Đổi sáng/tối/theo hệ thống và ngôn ngữ, khởi động lại; kiểm tra không render sai theme lúc đọc storage. Đăng nhập user khác không thấy địa điểm user trước.
 4. Quyền: từ chối/cấp lại trong hệ thống, quay lại app để kiểm tra status.
 5. Lưu Nhà/Cơ quan/yêu thích từ autocomplete, mở chọn đón/đến và chọn gợi ý, xác nhận tọa độ giữ nguyên và không có request search/detail mới.
@@ -40,3 +40,10 @@ File mới: features/profile/screens/EditProfileScreen.tsx, PaymentMethodsScreen
 Chọn Hồ sơ → Cài đặt → Giao diện → English. Kiểm tra tab bar, đăng nhập/OTP, luồng đặt xe, lịch đón, voucher, xe cá nhân, lịch sử, theo dõi, chat, hỗ trợ/điều khoản, hồ sơ và thanh toán. Thử form sai dữ liệu, hộp thoại hủy/xóa (không xác nhận xóa thật), đổi lại Vietnamese. Đóng/mở app và logout vẫn giữ ngôn ngữ đã chọn. Tiền vẫn là VND; không thay đổi dữ liệu gửi API hay tọa độ.
 
 Catalog: packages/shared/src/i18n/en.json; runtime: packages/shared/src/i18n/index.ts; hook reactive: packages/ui/src/useLanguage.ts; native dialogs: packages/ui/src/localizedAlert.ts. Với chuỗi động dùng translate(template, params), không nối nội dung người dùng vào khóa dịch.
+
+
+## Giao diện Material Design 3
+Cài đặt và các màn con sử dụng theme MD3 chung của monorepo trong `packages/ui/src/theme`, đồng bộ với cả app Khách và Tài xế. Light: nền `#F3F4F6`, card `#FFFFFF`; dark: nền `#000000`, card `#1E1E20`. GroupedList, Card, Typography, Button và Input được tái sử dụng từ package UI. Xem `docs/material-design.md` để biết quy ước và cách kiểm tra.
+
+## Thông tin cá nhân và quản lý tài khoản
+Card “Thông tin cá nhân” riêng đã gỡ. Nút bút chì ở góc trên bên phải thẻ avatar/tên/số điện thoại/email mở `/edit-profile` bằng hàm `openEdit` hiện có. Thống kê giữ ở phần dưới, tách bằng Divider nhẹ. Tiêu đề nhóm dùng SectionHeading chung với Cài đặt; Hồ sơ hiển thị chữ hoa, màu primary, 14dp/600, letterSpacing 0.8, lề ngang 16dp và cách Card 8dp. Card Cài đặt và hai hành động Đăng xuất / Xóa tài khoản giữ ở cuối Hồ sơ cùng các hộp thoại xác nhận hiện có. Màn con Tài khoản và các hành động trùng lặp trong Settings đã được gỡ; đường dẫn cũ `/settings/account` chuyển về `/settings`.
