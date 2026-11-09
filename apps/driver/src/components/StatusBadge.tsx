@@ -52,8 +52,8 @@ export const badgeColors = (
   c: ThemeColors,
 ): Record<StatusTone, { backgroundColor: string; color: string }> => ({
   neutral: { backgroundColor: c.surfaceContainerHigh, color: c.onSurface },
-  pending: { backgroundColor: c.tertiaryFixed, color: c.onTertiaryFixed },
-  active: { backgroundColor: c.primaryContainer, color: c.onPrimaryContainer },
+  pending: { backgroundColor: c.warningContainer, color: c.onWarningContainer },
+  active: { backgroundColor: c.surfaceContainerHigh, color: c.onSurface },
   success: { backgroundColor: c.successContainer, color: c.onSuccessContainer },
   danger: { backgroundColor: c.errorContainer, color: c.onErrorContainer },
 });

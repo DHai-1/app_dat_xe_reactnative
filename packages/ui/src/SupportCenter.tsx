@@ -3,6 +3,7 @@ import type {
   SupportImage,
   SupportRide,
   SupportTicket,
+  SupportStatusFilter,
 } from "@datxe/shared";
 import { Fragment, useRef, useState } from "react";
 import { Divider, List, RadioButton } from "react-native-paper";
@@ -24,7 +25,9 @@ const categories = {
 const statuses = {
   OPEN: "Đã tiếp nhận",
   IN_PROGRESS: "Đang xử lý",
-  RESOLVED: "Đã trả lời",
+  WAITING_FOR_USER: "Chờ khách phản hồi",
+  RESOLVED: "Đã giải quyết",
+  CLOSED: "Đã đóng",
 };
 const requestId = () =>
   "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
@@ -120,6 +123,9 @@ export function SupportCenter({
   onRefresh,
   onOpenRide,
   onOpenSafety,
+  onOpenTickets,
+  ticketStatus: selectedTicketStatus,
+  onTicketStatusChange,
 }: {
   rides: SupportRide[];
   tickets: SupportTicket[];
@@ -132,11 +138,30 @@ export function SupportCenter({
   loading?: boolean;
   error?: string | null;
   onRefresh?: () => void;
-  onOpenRide?: (id: number) => void;
+  onOpenRide?: (id: number) => void | Promise<void>;
+  ticketStatus?: SupportStatusFilter;
+  onTicketStatusChange?: (value: SupportStatusFilter) => void;
   onOpenSafety?: () => void;
+  onOpenTickets?: () => void;
 }) {
   const s = useThemedStyles(styles);
-  const [ticketStatus, setTicketStatus] = useState("all");
+  const [localTicketStatus, setLocalTicketStatus] = useState<SupportStatusFilter>("all");
+  const ticketStatus = selectedTicketStatus ?? localTicketStatus;
+  const setTicketStatus = (value: string) => {
+    if (value !== "all" && !(value in statuses)) return;
+    const next = value as SupportStatusFilter;
+    if (onTicketStatusChange) onTicketStatusChange(next); else setLocalTicketStatus(next);
+  };
+  const [openingRide, setOpeningRide] = useState<number | null>(null);
+  const [rideError, setRideError] = useState("");
+  const openRideLock = useRef(false);
+  const openRide = async (id: number) => {
+    if (openRideLock.current || !onOpenRide) return;
+    openRideLock.current = true; setOpeningRide(id); setRideError("");
+    try { await onOpenRide(id); }
+    catch (error) { setRideError(error instanceof Error ? error.message : "Chưa mở được chuyến. Vui lòng thử lại."); }
+    finally { openRideLock.current = false; setOpeningRide(null); }
+  };
   const [expandedTicket, setExpandedTicket] = useState<number | null>(null);
   const visibleTickets = tickets.filter((ticket) => ticketStatus === "all" || ticket.status === ticketStatus);
   const [rideId, setRideId] = useState<number | null>(initialRideId || null);
@@ -193,6 +218,19 @@ export function SupportCenter({
         </Text>
         {onOpenSafety ? <Button variant="secondary" label="Mở trang An toàn" onPress={onOpenSafety} /> : null}
       </Card>
+      {onOpenTickets ? (
+        <Button
+          label="Mở hộp thư hỗ trợ"
+          icon="chat"
+          iconPosition="leading"
+          onPress={onOpenTickets}
+        />
+      ) : null}
+      {loading ? <Text accessibilityLiveRegion="polite">Đang tải yêu cầu hỗ trợ…</Text> : null}
+      {loadError ? <Card style={s.form}><Text accessibilityRole="alert" style={s.error}>{loadError}</Text>
+        {onRefresh ? <Button label="Thử tải lại dữ liệu hỗ trợ" variant="secondary" onPress={onRefresh} /> : null}
+      </Card> : null}
+      {rideError ? <Text accessibilityRole="alert" style={s.error}>{rideError}</Text> : null}
       {receipt ? (
         <Card style={s.form}>
           <Text accessibilityRole="header" style={s.title}>
@@ -313,10 +351,10 @@ export function SupportCenter({
           ) : null}
         </View>
         {!tickets.length && !loading && !loadError ? (
-          <Text style={s.meta}>Chưa có yêu cầu hỗ trợ.</Text>
+          <Text style={s.meta}>{ticketStatus === "all" ? "Chưa có yêu cầu hỗ trợ." : "Chưa có yêu cầu phù hợp với trạng thái đã chọn."}</Text>
         ) : null}
       </View>
-      {onOpenRide && tickets.length ? (
+      {onOpenRide ? (
         <Card>
           <List.Accordion theme={{ colors: { background: s.accordion.backgroundColor } }} title="Lọc yêu cầu" description={ticketStatus === "all" ? undefined : statuses[ticketStatus as keyof typeof statuses]}>
             <RadioButton.Group value={ticketStatus} onValueChange={setTicketStatus}>
@@ -326,7 +364,7 @@ export function SupportCenter({
           </List.Accordion>
         </Card>
       ) : null}
-      {tickets.length && !visibleTickets.length ? <Text style={s.meta}>Chưa có yêu cầu phù hợp trong danh sách đã tải.</Text> : null}
+      {tickets.length && !visibleTickets.length ? <Text style={s.meta}>Chưa có yêu cầu phù hợp với trạng thái đã chọn.</Text> : null}
       {visibleTickets.map((ticket) => (
         <Card key={ticket.id} style={s.form}>
           <Text style={s.title}>
@@ -337,8 +375,9 @@ export function SupportCenter({
             {ticket.rideId ? ` · Chuyến #${ticket.rideId}` : ""}
           </Text>
           <Text style={s.meta}>
-            {new Date(ticket.createdAt).toLocaleString("vi-VN")}
+            Gửi lúc {new Date(ticket.createdAt).toLocaleString("vi-VN")}
           </Text>
+          {ticket.updatedAt !== ticket.createdAt ? <Text style={s.meta}>Cập nhật lúc {new Date(ticket.updatedAt).toLocaleString("vi-VN")}</Text> : null}
           {onOpenRide ? (
             <Button variant="ghost" label={expandedTicket === ticket.id ? "Thu gọn" : "Xem chi tiết yêu cầu"}
               onPress={() => setExpandedTicket((current) => current === ticket.id ? null : ticket.id)} />
@@ -365,7 +404,7 @@ export function SupportCenter({
                 </Text>
               )}
               {ticket.rideId && onOpenRide ? (
-                <Button variant="secondary" label={`Mở chuyến #${ticket.rideId}`} onPress={() => onOpenRide(ticket.rideId!)} />
+                <Button variant="secondary" label={`Mở chuyến #${ticket.rideId}`} loading={openingRide === ticket.rideId} disabled={openingRide !== null} onPress={() => void openRide(ticket.rideId!)} />
               ) : null}
             </>
           ) : null}

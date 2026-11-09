@@ -12,7 +12,7 @@ export function useComplete() {
   const id = Number(rideId);
   const valid = Number.isSafeInteger(id) && id > 0;
   const key = ['driver', 'ride', id];
-  const query = useQuery({ queryKey: key, queryFn: () => getDriverRide(id), enabled: valid });
+  const query = useQuery({ queryKey: key, queryFn: () => getDriverRide(id), enabled: valid, refetchOnWindowFocus: 'always', refetchInterval: q => q.state.data?.payment?.status === 'PENDING' ? 5000 : false });
   const refetch = query.refetch;
   useRefreshOnFocus(useCallback(() => valid ? refetch() : undefined, [valid, refetch]));
   const cash = useMutation({
@@ -21,13 +21,13 @@ export function useComplete() {
         throw new Error('Chuyến không còn chờ thu tiền mặt.');
       return confirmCashReceived(id);
     },
+    onError: async () => { await client.invalidateQueries({ queryKey: ['driver'] }); },
     onSuccess: async payment => {
       if (payment) client.setQueryData<CustomerRideDetail | null>(key, current => current?.payment ? {
         ...current, payment: { ...current.payment, amount: payment.amount, status: payment.status, paidAt: payment.paidAt },
       } : current);
       await Promise.all([
-        client.invalidateQueries({ queryKey: ['driver', 'wallet'] }),
-        client.invalidateQueries({ queryKey: key }),
+        client.invalidateQueries({ queryKey: ['driver'] }),
       ]);
     },
   });

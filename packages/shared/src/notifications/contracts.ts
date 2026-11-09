@@ -44,6 +44,19 @@ export function offerDeadline(event: PushEnvelope) {
   return Number.isFinite(expires) && expires > 0 ? expires : 0;
 }
 export function pushPresentation(event: PushEnvelope, now = Date.now()) {
+  if (event.type === 'TICKET_REPLY') {
+    const payload = record(event.payload);
+    return {
+      title: typeof payload.title === 'string' ? payload.title : 'Hỗ trợ khách hàng: Có phản hồi mới',
+      body: typeof payload.body === 'string' ? payload.body : 'Mở ứng dụng để xem phản hồi.',
+      channelId: PUSH_CHANNEL,
+    };
+  }
+  if (event.type === 'WITHDRAWAL_REVIEWED' || event.type === 'PAYMENT_UPDATED') {
+    const payload = record(event.payload);
+    return { title: typeof payload.title === 'string' ? payload.title : 'Kết quả yêu cầu rút tiền',
+      body: typeof payload.body === 'string' ? payload.body : 'Mở ứng dụng để xem kết quả rút tiền.', channelId: PUSH_CHANNEL };
+  }
   if (event.type === 'CHAT_READ') return null;
   if (event.type === 'RIDE_OFFER' && offerDeadline(event) <= now) return null;
   if (event.type === 'RIDE_ASSIGNED') {
@@ -86,6 +99,23 @@ export type PushRouteApi = {
 };
 const terminal = new Set(['COMPLETED', 'CANCELLED', 'NO_DRIVER_FOUND', 'EXPIRED', 'FAILED_SYSTEM']);
 export async function resolvePushDestination(event: PushEnvelope, role: PushRole, api: PushRouteApi, now: () => number = Date.now): Promise<PushDestination> {
+  if (event.type === 'TICKET_REPLY') {
+    const ticketId = positiveId(record(event.payload).ticketId);
+    return ticketId
+      ? { pathname: '/tickets/[id]', params: { id: String(ticketId) } }
+      : { pathname: '/(tabs)/notifications' };
+  }
+  if (event.type === 'PAYMENT_UPDATED') {
+    const id = positiveId(record(event.payload).rideId);
+    if (id) {
+      await api.ride(id);
+      return { pathname: role === 'DRIVER' ? '/ride/complete' : '/ride/completed', params: { rideId: String(id) } };
+    }
+  }
+  if (event.type === 'WITHDRAWAL_REVIEWED' && role === 'DRIVER') {
+    const id = positiveId(record(event.payload).withdrawalId);
+    return { pathname: '/profile/withdraw', ...(id ? { params: { requestId: String(id) } } : {}) };
+  }
   const id = positiveId(record(event.payload).rideId ?? record(event.payload).ride_id);
   if (event.type === 'RIDE_OFFER' && role === 'DRIVER' && id) {
     const offer = await api.pendingOffer?.();

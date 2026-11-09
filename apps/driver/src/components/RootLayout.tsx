@@ -2,31 +2,32 @@ import { validateEnv } from "@/config/env";
 import "@/lib/auth";
 import "@/lib/logger";
 import { queryClient } from "@/lib/queryClient";
-import { ThemeProvider, useScreenMotion, useTheme } from "@datxe/ui";
+import { useScreenMotion, useTheme, usePushForegroundLaunch } from "@datxe/ui";
 import { MaterialIcons } from "@expo/vector-icons";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { PaperProvider } from "react-native-paper";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { DriverRealtimeBridge } from "./DriverRealtimeBridge";
+import { DriverSettingsProvider } from "@/lib/settings/DriverSettingsProvider";
 import { PushBridge } from "./PushBridge";
 
 export default function RootLayout() {
   validateEnv();
   const [loaded, error] = useFonts(MaterialIcons.font);
-  if (!loaded && !error) return null;
+  const foregroundLaunch = usePushForegroundLaunch();
+  if (!foregroundLaunch || (!loaded && !error)) return null;
   return (
-    <PaperProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider brand="driver" mode="system">
-          {/* GitHub addition: register push notifications while preserving the branded driver theme. */}
+        <DriverSettingsProvider>
           <PushBridge />
           <DriverRealtimeBridge />
           <DriverStack />
-        </ThemeProvider>
+        </DriverSettingsProvider>
       </QueryClientProvider>
-    </PaperProvider>
+    </GestureHandlerRootView>
   );
 }
 

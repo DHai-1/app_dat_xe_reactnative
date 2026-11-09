@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "PtitGo Driver",
+    "name": "PtitGo Tài Xế",
     "slug": "drivemate-driver",
     "scheme": "drivemate-driver",
     "version": "1.0.0",
@@ -8,12 +8,7 @@
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "bundleIdentifier": "com.datxe.driver",
-      "googleServicesFile": "./GoogleServiceDriver-Info.plist",
-      "infoPlist": {
-        "CFBundleDisplayName": "PtitGo Tài xế",
-        "ITSAppUsesNonExemptEncryption": false
-      }
+      "bundleIdentifier": "com.datxe.driver"
     },
     "android": {
       "package": "com.datxe.driver",
@@ -22,7 +17,7 @@
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundColor": "#FFFFFF",
+        "backgroundColor": "#07B378",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       }
     },
@@ -35,29 +30,29 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FF4757",
-          "image": "./assets/images/brand-logo.png",
+          "backgroundColor": "#07B378",
+          "image": "./assets/images/splash-icon.png",
           "imageWidth": 160
         }
       ],
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Cho phép DriveMate Tài Xế dùng camera để chụp xe và giấy tờ.",
-          "photosPermission": "Cho phép DriveMate Tài Xế chọn ảnh giấy phép lái xe từ thư viện."
+          "cameraPermission": "Cho phép PtitGo Tài Xế dùng camera để chụp xe và giấy tờ.",
+          "photosPermission": "Cho phép PtitGo Tài Xế chọn ảnh giấy phép lái xe từ thư viện."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Cho phép DriveMate Tài Xế dùng vị trí để nhận cuốc gần bạn.",
-          "locationAlwaysAndWhenInUsePermission": "Cho phép DriveMate Tài Xế theo dõi vị trí trong suốt chuyến đi.",
+          "locationWhenInUsePermission": "Cho phép PtitGo Tài Xế dùng vị trí để nhận cuốc gần bạn.",
+          "locationAlwaysAndWhenInUsePermission": "Cho phép PtitGo Tài Xế theo dõi vị trí trong suốt chuyến đi.",
           "isAndroidBackgroundLocationEnabled": true
         }
       ]
     ],
     "experiments": {
-      "typedRoutes": true,
+      "typedRoutes": false,
       "reactCompiler": true
     },
     "extra": {
@@ -70,9 +65,8 @@
         }
       },
       "eas": {
-        "projectId": "f4c1c3a5-6e73-4502-b362-0724040bb358"
+        "projectId": "566b0724-9d68-4894-a085-72f530984077"
       }
-    },
-    "owner": "haidoan1s-team"
+    }
   }
 }

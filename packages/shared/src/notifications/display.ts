@@ -157,6 +157,14 @@ export function getNotificationText(
       : {};
   const code = identifier(type);
   const status = identifier(payload.status);
+  if (code === 'PAYMENT_UPDATED') return {
+    title: t(typeof payload.title === 'string' ? payload.title : 'Cập nhật thanh toán'),
+    description: t(typeof payload.body === 'string' ? payload.body : 'Phương thức hoặc trạng thái thanh toán đã thay đổi. Vui lòng kiểm tra hóa đơn.'),
+  };
+  if (code === 'WITHDRAWAL_REVIEWED') return {
+    title: t(typeof payload.title === 'string' ? payload.title : status === 'SUCCESS' ? 'Rút tiền thành công' : 'Yêu cầu rút tiền bị từ chối'),
+    description: t(typeof payload.body === 'string' ? payload.body : 'Mở yêu cầu rút tiền để xem kết quả xử lý.'),
+  };
   const mapped =
     (code === "RIDE_UPDATED" && status === "SEARCHING" && typeof payload.redispatchCount === "number" && payload.redispatchCount > 0 ? messages.RIDE_REDISPATCHED : undefined) ??
     (["RIDE_UPDATED", "RIDE_NO_DRIVER"].includes(code) && rideStatuses.has(status)

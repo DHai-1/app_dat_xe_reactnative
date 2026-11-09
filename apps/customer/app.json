@@ -8,7 +8,11 @@
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "bundleIdentifier": "com.datxe.customer"
+      "bundleIdentifier": "com.datxe.customer",
+      "googleServicesFile": "./GoogleServiceCustomer-Info.plist",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.datxe.customer",
@@ -45,6 +49,14 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "Cho phép PtitGo dùng vị trí để chọn điểm đón và theo dõi chuyến đi."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "dynamic"
+          }
         }
       ]
     ],

@@ -1,19 +1,99 @@
-import { rideStyles as s } from '@/components/rideStyles';
-import { formatMoney } from '@datxe/shared';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { DriverCreditGate } from "../components/DriverCreditGate";
+import BottomSheet from '@gorhom/bottom-sheet';
+import { Button, offerPalette as palette, Typography as Text } from '@datxe/ui';
+import { StatusBar } from 'expo-status-bar';
+import { useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { OfferActions } from '../components/OfferActions';
+import { OfferDecision } from '../components/OfferDecision';
+import { OfferMap } from '../components/OfferMap';
 import { useAccept } from '../hooks/useAccept';
+
 export default function AcceptRideScreen() {
+  const { top, bottom } = useSafeAreaInsets();
+  const [height, setHeight] = useState(0);
   const h = useAccept();
-  const openDirections = () => {
-    if (!h.offer?.pickup.lat || !h.offer.pickup.lng) return;
-    h.router.push({ pathname: '/ride/directions', params: { lat: String(h.offer.pickup.lat), lng: String(h.offer.pickup.lng), address: h.offer.pickup.address } });
-  };
-  return <SafeAreaView style={s.safe}><ScrollView contentContainerStyle={s.page}>
-    <Pressable onPress={() => h.router.back()}><Text style={s.link}>‹ Quay lại</Text></Pressable><Text style={s.title}>Yêu cầu chuyến đi</Text>
-    {h.loading ? <ActivityIndicator /> : null}{h.error ? <Text style={s.error}>{h.error}</Text> : null}
-    {h.offer ? <><View style={s.card}><Text style={s.label}>ĐIỂM ĐÓN · {h.offer.customer.displayName}</Text><Text style={s.text}>{h.offer.pickup.address}</Text><Text style={s.label}>GHI CHÚ ĐIỂM ĐÓN</Text><Text style={s.text}>{h.offer.pickupNote || 'Khách chưa thêm ghi chú điểm đón.'}</Text><Pressable onPress={openDirections}><Text style={s.link}>Mở chỉ đường tới điểm đón</Text></Pressable></View>
-      <View style={s.card}><Text style={s.label}>ĐIỂM TRẢ</Text><Text style={s.text}>{h.offer.dropoff.address}</Text><Text style={s.text}>{h.offer.tripDistanceKm} km · {h.offer.estDurationMin} phút</Text><Text style={s.text}>{h.offer.vehicle.type} · {h.offer.vehicle.transmission}</Text><Text style={s.title}>{formatMoney(h.offer.fareEstimate)}</Text>{h.offer.note ? <Text style={s.text}>{h.offer.note}</Text> : null}</View>
-      <Pressable disabled={h.busy || !h.secondsLeft} onPress={h.accept} style={[s.button, (h.busy || !h.secondsLeft) && { opacity: 0.4 }]}><Text style={s.buttonText}>{h.busy ? 'Đang xử lý…' : h.secondsLeft ? `Nhận chuyến (${h.secondsLeft}s)` : 'Yêu cầu đã hết hạn'}</Text></Pressable><Pressable disabled={h.busy} onPress={h.reject}><Text style={s.link}>Bỏ qua yêu cầu</Text></Pressable></> : !h.loading ? <View style={s.card}><Text style={s.text}>Chưa có yêu cầu chuyến đi đang chờ.</Text><Pressable onPress={() => void h.refresh()}><Text style={s.link}>Tải lại</Text></Pressable></View> : null}
-  </ScrollView></SafeAreaView>;
+  const { offer } = h;
+  const live = Boolean(offer && h.secondsLeft > 0);
+  const sheetHeight = Math.round(height * 0.58);
+  // Reserve extra clearance above the sheet while keeping room for the route on short screens.
+  const mapClearance = Math.min(32, Math.max(0, height - top - sheetHeight - 128));
+  const snapPoints = useMemo(() => [sheetHeight], [sheetHeight]);
+
+  if (!h.credit.allowed && !h.busy) return <DriverCreditGate credit={h.credit} />;
+
+  return (
+    <View style={styles.screen} onLayout={event => setHeight(Math.round(event.nativeEvent.layout.height))}>
+      <StatusBar style="light" />
+      {offer && (live || h.busy) ? (
+        <>
+          <OfferMap offer={offer} live={live} top={top} bottom={sheetHeight + mapClearance} />
+          {sheetHeight > 0 ? (
+            <BottomSheet
+              index={0}
+              snapPoints={snapPoints}
+              enableDynamicSizing={false}
+              enablePanDownToClose={false}
+              enableHandlePanningGesture={false}
+              enableContentPanningGesture={false}
+              enableOverDrag={false}
+              handleComponent={null}
+              backgroundStyle={styles.sheet}
+            >
+              <View style={[styles.sheetContent, { height: sheetHeight, paddingBottom: bottom + 4 }]}>
+                <ScrollView style={styles.details} contentContainerStyle={styles.detailsContent}>
+                  <OfferDecision offer={offer} />
+                </ScrollView>
+                <View style={styles.footer}>
+                  <OfferActions expiresAt={h.expiresAt} secondsLeft={h.secondsLeft}
+                    busy={h.busy} error={h.error} onAccept={h.accept} onSkip={h.reject} />
+                </View>
+              </View>
+            </BottomSheet>
+          ) : null}
+        </>
+      ) : (
+        <View style={[styles.state, { paddingTop: top + 16, paddingBottom: bottom + 16 }]}>
+          {h.loading ? (
+            <>
+              <ActivityIndicator color={palette.muted} />
+              <Text style={styles.stateText}>Đang tải yêu cầu chuyến…</Text>
+            </>
+          ) : (
+            <>
+              <Text accessibilityRole="header" style={styles.stateTitle}>
+                {offer ? 'Cuốc đã hết hạn' : 'Yêu cầu chưa khả dụng'}
+              </Text>
+              <Text accessibilityRole={h.error ? 'alert' : undefined} style={styles.stateText}>
+                {h.error || (offer ? 'Về Trang chủ để chờ cuốc mới.' : 'Hiện chưa có yêu cầu chuyến đi đang chờ.')}
+              </Text>
+              {!offer && h.error ? (
+                <Button variant="secondary" label="Kiểm tra lại" style={styles.stateButton}
+                  contentColor={palette.text} onPress={() => void h.refresh()} />
+              ) : null}
+              <Button variant="ghost" label="Về trang chủ" contentColor={palette.text}
+                onPress={() => h.router.replace('/(tabs)/home')} />
+            </>
+          )}
+        </View>
+      )}
+      <View pointerEvents="none" style={[styles.statusBar, { height: top }]} />
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: palette.background },
+  statusBar: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: palette.background },
+  sheet: { backgroundColor: palette.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  sheetContent: { paddingTop: 4 },
+  details: { flex: 1 },
+  detailsContent: { gap: 12, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 },
+  footer: { paddingHorizontal: 16, paddingTop: 4, backgroundColor: palette.surface },
+  state: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, gap: 16 },
+  stateTitle: { color: palette.text, fontSize: 24, lineHeight: 30, fontWeight: '700', textAlign: 'center' },
+  stateText: { color: palette.muted, fontSize: 16, lineHeight: 22, textAlign: 'center' },
+  stateButton: { backgroundColor: palette.badge },
+});

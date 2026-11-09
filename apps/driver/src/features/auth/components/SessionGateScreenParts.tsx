@@ -7,5 +7,9 @@ export const styles = (colors: ThemeColors) =>
       backgroundColor: colors.background,
       alignItems: "center",
       justifyContent: "center",
+      padding: 16,
     },
+    card: { width: "100%", maxWidth: 480, gap: 16 },
+    logo: { width: 112, height: 112, alignSelf: "center" },
+    status: { textAlign: "center" },
   });

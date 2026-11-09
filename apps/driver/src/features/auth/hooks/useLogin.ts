@@ -1,14 +1,16 @@
 import { AuthApiError,AuthCancelledError,authenticateWithBackend,isValidVietnamPhoneNumber,normalizeVietnamPhoneNumber,sendPhoneCode,signInWithFacebook,signInWithGoogle } from '@datxe/shared';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { SignInMethod,getErrorMessage,isAccountNotFound } from '../components/LoginScreenParts';
-import { configureDriverPhoneAuthForDev } from '../../../lib/phoneAuth';
 export function useLogin() {
 const router = useRouter();
-const [phone, setPhone] = useState('');
+// Keep the latest phone for validation without controlling the input.
+const phoneDraft = useRef('');
+const setPhone = (text: string) => { phoneDraft.current = text; };
 const [busy, setBusy] = useState<SignInMethod>(null);
 const [error, setError] = useState('');
 const continueWithPhone = async () => {
+    const phone = phoneDraft.current;
     if (!isValidVietnamPhoneNumber(phone)) {
       setError('Vui lòng nhập số điện thoại Việt Nam hợp lệ.');
       return;
@@ -17,16 +19,10 @@ const continueWithPhone = async () => {
     setError('');
     try {
       const normalizedPhone = normalizeVietnamPhoneNumber(phone);
-      configureDriverPhoneAuthForDev();
-      await Promise.race([
-        sendPhoneCode(normalizedPhone),
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('FIREBASE_PHONE_AUTH_TIMEOUT')), 30000)),
-      ]);
+      await sendPhoneCode(normalizedPhone);
       router.push({ pathname: '/(auth)/otp-verify', params: { phone: normalizedPhone } } as never);
     } catch (cause) {
-      setError(cause instanceof Error && cause.message === 'FIREBASE_PHONE_AUTH_TIMEOUT'
-        ? 'Xác minh Firebase đang bị treo. Hãy kiểm tra SHA Firebase hoặc thử lại.'
-        : getErrorMessage(cause));
+      setError(getErrorMessage(cause));
     } finally {
       setBusy(null);
     }
@@ -55,5 +51,5 @@ const continueWithSocial = async (method: Exclude<SignInMethod, 'phone' | null>)
       setBusy(null);
     }
   };
-return { phone, setPhone, busy, error, setError, continueWithPhone, continueWithSocial };
+return { setPhone, busy, error, setError, continueWithPhone, continueWithSocial };
 }

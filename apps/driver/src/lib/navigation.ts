@@ -1,12 +1,26 @@
-import type { RideCoordinates } from '@datxe/shared';
+import type { CustomerRideDetail, RideCoordinates } from '@datxe/shared';
 import { router } from 'expo-router';
-export function externalDirectionsUrl(point: { lat: number | null; lng: number | null }) {
-  if (point.lat === null || point.lng === null || !Number.isFinite(point.lat) || !Number.isFinite(point.lng) || Math.abs(point.lat) > 90 || Math.abs(point.lng) > 180) throw new Error('Điểm chỉ đường chưa có tọa độ hợp lệ.');
-  return '';
+
+export type RideStop = 'pickup' | 'dropoff';
+
+export function validDirectionsPoint(point: { lat: number | null; lng: number | null }): point is RideCoordinates {
+  return point.lat !== null && point.lng !== null &&
+    Number.isFinite(point.lat) && Number.isFinite(point.lng) &&
+    Math.abs(point.lat) <= 90 && Math.abs(point.lng) <= 180;
 }
-export function openExternalDirections(point: RideCoordinates | { lat: number | null; lng: number | null }, address = '') {
-  if (point.lat === null || point.lng === null || !Number.isFinite(point.lat) || !Number.isFinite(point.lng)) return;
-  // Keep this legacy function name for callers that have not migrated yet,
-  // but always stay inside the driver app instead of opening Google Maps.
-  router.push({ pathname: '/ride/directions', params: { lat: String(point.lat), lng: String(point.lng), address } } as never);
+
+export function directionsDestination(rideId: number, stop: RideStop) {
+  return { pathname: '/ride/directions' as const, params: { rideId: String(rideId), stop } };
+}
+
+export function openRideDirections(ride: CustomerRideDetail, stop: RideStop) {
+  if (validDirectionsPoint(ride[stop])) router.push(directionsDestination(ride.id, stop));
+}
+
+export function directionsQuery(origin: RideCoordinates, destination: RideCoordinates, vehicleType: 'CAR' | 'MOTORCYCLE') {
+  return new URLSearchParams({
+    origin: `${origin.lng},${origin.lat}`,
+    destination: `${destination.lng},${destination.lat}`,
+    vehicleType,
+  });
 }

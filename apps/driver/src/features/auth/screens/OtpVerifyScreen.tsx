@@ -6,6 +6,7 @@ export default function DriverOtpVerifyScreen() {
   return (
     <OtpVerificationScreen
       phone={phone}
+      onHelp={() => router.push("/(auth)/login-help")}
       onHome={() => router.replace("/(tabs)/home" as never)}
       onLogin={() => router.replace("/(auth)/login" as never)}
       onRegister={(verifiedPhone) =>

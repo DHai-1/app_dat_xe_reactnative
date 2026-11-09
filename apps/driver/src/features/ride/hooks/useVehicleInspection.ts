@@ -55,7 +55,10 @@ export function useVehicleInspection() {
     if (PHOTO_ANGLES.slice(0, 4).some(([angle]) => !photos.some(photo => photo.angle === angle))) throw new Error('Cần đủ ảnh đầu xe, đuôi xe, bên trái và bên phải.');
     const body = { odometer: Number(odometer), fuelLevel: fuelLevel ? Number(fuelLevel) : null, notes: notes.trim() || null, photos: photos.map(({ angle, fileUrl, publicId }) => ({ angle, fileUrl, publicId })) };
     return existing ? reviseDriverHandover(ride.id, phase, existing.revision ?? 1, body) : submitDriverHandover(ride.id, phase, body);
-  }, onSuccess: async () => { await client.invalidateQueries({ queryKey: ['driver'] }); if (getFirebaseUser()?.uid === uid) client.setQueryData<Draft>(draftKey, { photos: [] }); }, onError: () => { void query.refetch(); } });
+  }, onSuccess: async () => { await client.invalidateQueries({ queryKey: ['driver'] }); if (getFirebaseUser()?.uid === uid) {
+      client.setQueryData<Draft>(draftKey, { photos: [] });
+      if (phase === 'dropoff') router.dismissTo('/ride/in-progress');
+    } }, onError: () => { void query.refetch(); } });
   const editable = Boolean(ride && ((!existing && (phase === 'pickup' ? ride.status === 'DRIVER_ARRIVED' : ride.status === 'ARRIVED_DESTINATION')) || (existing?.correctionReason && !existing.confirmedByCustomer && (phase === 'pickup' ? ride.status === 'VEHICLE_HANDOVER' : ride.status === 'VEHICLE_RETURNED'))));
   return { router, ride, phase, existing, photos, uploading, photoError: photoError?.scope === scope ? photoError : null, refresh: query.refetch, odometer, setOdometer, fuelLevel, setFuelLevel, notes, setNotes, capture, submit, editable, revisions, loading: query.isLoading, error: query.error?.message || submit.error?.message };
 }

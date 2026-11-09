@@ -57,6 +57,8 @@ export type CustomerRideDriver = {
 };
 
 export type CustomerRideDetail = {
+  paymentMethod?: PaymentMethod | null;
+  driverEarnings?: { netAmount: number; commissionAmount: number; creditedToCash: boolean; paid: boolean } | null;
   payment?: { amount: number; method: PaymentMethod; status: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'; paidAt: string | null } | null;
   pickupNote?: string | null;
   route?: SavedRideRoute | null;

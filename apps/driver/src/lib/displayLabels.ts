@@ -68,7 +68,7 @@ const notificationTypes: Record<string, string> = {
   DRIVER_DOCUMENT_REVIEWED: 'Kết quả kiểm tra giấy tờ', DRIVER_VERIFICATION_UPDATED: 'Cập nhật xét duyệt hồ sơ',
   DRIVER_FORCE_OFFLINE: 'Tạm ngừng nhận chuyến', CHAT_MESSAGE: 'Tin nhắn mới', CHAT_READ: 'Tin nhắn đã được đọc',
 };
-export const notificationTypeLabel = (value: string | null | undefined) => lookup(notificationTypes, value?.trim().toUpperCase()) ?? 'Thông báo từ hệ thống';
+export const notificationTypeLabel = (value: string | null | undefined) => lookup(notificationTypes, value) ?? 'Thông báo từ hệ thống';
 const walletTypes: Record<string, string> = {
   DEPOSIT: 'Nạp tiền', WITHDRAW: 'Rút tiền', TRIP_PAYMENT: 'Thanh toán chuyến đi',
   TRIP_EARNING: 'Thu nhập chuyến đi', REFUND: 'Hoàn tiền', COMMISSION_FEE: 'Phí dịch vụ',

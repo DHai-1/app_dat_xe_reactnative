@@ -2,14 +2,12 @@ import { DriverChatButton } from "@/components/DriverChatButton";
 import type { CustomerRideDetail } from "@datxe/shared";
 import { Button, Card, Typography as Text, useThemeColors } from "@datxe/ui";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Linking, ScrollView, StyleSheet, View } from "react-native";
 import { Avatar, Dialog, Portal } from "react-native-paper";
 
 export function RideCustomerCard({ ride }: { ride: CustomerRideDetail }) {
   const colors = useThemeColors();
-  const router = useRouter();
   const [visible, setVisible] = useState(false);
   const [callError, setCallError] = useState("");
   const [failedAvatar, setFailedAvatar] = useState<string | null>(null);
@@ -55,14 +53,6 @@ export function RideCustomerCard({ ride }: { ride: CustomerRideDetail }) {
           <Text style={{ color: colors.onSurfaceVariant }}>Khách hàng</Text>
           <Text style={styles.name} numberOfLines={2}>{name}</Text>
         </View>
-        <View style={styles.actions}>
-          <Pressable accessibilityLabel="Nhắn tin cho khách" onPress={(event) => { event.stopPropagation(); router.push({ pathname: "/ride/chat", params: { rideId: String(ride.id) } }); }}>
-            <MaterialIcons name="chat" size={21} color={colors.primary} />
-          </Pressable>
-          <Pressable accessibilityLabel="Gọi điện cho khách" disabled={!canCall} onPress={(event) => { event.stopPropagation(); void call(); }}>
-            <MaterialIcons name="phone" size={21} color={canCall ? colors.primary : colors.outline} />
-          </Pressable>
-        </View>
         <MaterialIcons name="chevron-right" size={24} color={colors.onSurfaceVariant} />
       </Card>
       <Portal>
@@ -76,6 +66,13 @@ export function RideCustomerCard({ ride }: { ride: CustomerRideDetail }) {
                 <Text style={{ color: colors.onSurfaceVariant }}>Số điện thoại</Text>
                 <Text selectable>{phone || "Chưa có số điện thoại"}</Text>
               </View>
+              <View style={styles.contact}>
+                <Text style={{ color: colors.onSurfaceVariant }}>Email</Text>
+                <Text selectable>{customer?.email?.trim() || "Chưa có email"}</Text>
+              </View>
+              {customer?.averageRating != null ? (
+                <Text>Đánh giá · {customer.averageRating.toLocaleString("vi-VN")} / 5</Text>
+              ) : null}
               <Button label="Gọi điện" icon="call" iconPosition="leading" disabled={!canCall} onPress={() => void call()} />
               <DriverChatButton ride={ride} onOpen={close} />
               {callError ? <Text accessibilityRole="alert" style={{ color: colors.error }}>{callError}</Text> : null}
@@ -93,7 +90,6 @@ export function RideCustomerCard({ ride }: { ride: CustomerRideDetail }) {
 const styles = StyleSheet.create({
   summary: { flexDirection: "row", alignItems: "center", gap: 12 },
   identity: { flex: 1, gap: 4 },
-  actions: { flexDirection: "row", alignItems: "center", gap: 14 },
   name: { fontSize: 16, fontWeight: "600" },
   scrollArea: { paddingHorizontal: 0, borderTopWidth: 0, borderBottomWidth: 0 },
   details: { paddingHorizontal: 24, paddingVertical: 8, gap: 12 },

@@ -29,3 +29,7 @@ export * from "./chat/ChatConversation";
 export { ChatImageViewer } from "./chat/ChatImageViewer";
 
 export { offerPalette } from './theme/offerPalette';
+export * from './wallet/WalletComponents';
+export * from './tickets/TicketChat';
+export * from './tickets/TicketList';
+export * from './tickets/TicketCreate';

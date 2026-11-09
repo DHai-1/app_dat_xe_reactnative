@@ -1,4 +1,4 @@
-import { ProgressBar } from "react-native-paper";
+import { Appbar, Divider, ProgressBar } from "react-native-paper";
 import { DriverPage } from "@/components/DriverPage";
 import { DriverConfirmationDialog } from "@/components/DriverConfirmationDialog";
 import { useSessionStore } from "@/lib/store";
@@ -9,8 +9,9 @@ import { cancelDriverRide } from "../api";
 import { rideStyles as s } from "@/components/rideStyles";
 import { RideCustomerCard } from "../components/RideCustomerCard";
 import { StatusBadge } from "@/components/StatusBadge";
-import { openExternalDirections } from "@/lib/navigation";
-import { formatMoney } from "@datxe/shared";
+import { RideRouteCard } from "../components/RideRouteCard";
+import { StyleSheet, View } from "react-native";
+import { formatDistance, formatMoney } from "@datxe/shared";
 import {
   Button,
   Card,
@@ -69,12 +70,31 @@ export default function InProgressRideScreen() {
   const inspection = () => router.push("/ride/vehicle-inspection");
   const needsInspection = ride?.status === "DRIVER_ARRIVED" || ride?.status === "ARRIVED_DESTINATION";
   return (
-    <DriverPage title="Chuyến đang thực hiện" loading={query.isLoading}
+    <DriverPage title="Chuyến đang thực hiện" appearance="ride" loading={query.isLoading}
+      headerAction={ride ? (
+        <Appbar.Action icon="shield-outline" style={styles.headerAction}
+          accessibilityLabel="An toàn chuyến đi" onPress={() => router.push("/safety")} />
+      ) : undefined}
+      headerContent={phase ? (
+        <View style={styles.progress}>
+          <View style={styles.progressLabels}>
+            <Text style={[themed_s.label, styles.step]}>Bước {phase[0]}/4</Text>
+            <Text style={[themed_s.label, styles.stepDescription]}>{phase[1]}</Text>
+          </View>
+          <ProgressBar
+            progress={phase[0] / 4}
+            color={colors.primary}
+            style={[styles.progressBar, { backgroundColor: colors.surfaceContainerHigh }]}
+            accessibilityLabel={`Bước ${phase[0]} trên 4`}
+          />
+        </View>
+      ) : undefined}
       error={query.error?.message || progress.error?.message}
       retry={query.error ? query.refetch : undefined}
       footer={ride && (action || needsInspection) ? (
         <Button
           label={needsInspection ? (isDropoff ? "Lập biên bản trả xe" : "Lập biên bản nhận xe") : action?.[0] ?? ""}
+          style={styles.primaryAction}
           loading={progress.isPending}
           loadingLabel="Đang cập nhật…"
           disabled={cancel.isPending}
@@ -84,56 +104,36 @@ export default function InProgressRideScreen() {
     >
         {ride ? (
           <>
-            <Card style={themed_s.card}>
+            <View style={styles.tripHeader}>
               <Text style={themed_s.label}>Chuyến #{ride.id}</Text>
               <StatusBadge kind="ride" value={ride.status} contextLabel="Trạng thái chuyến" />
-              {phase ? (
-                <>
-                  <Text style={themed_s.text}>Bước {phase[0]}/4 · {phase[1]}</Text>
-                  <ProgressBar progress={phase[0] / 4} accessibilityLabel={`Bước ${phase[0]} trên 4`} />
-                </>
-              ) : null}
-              {waitingForCustomer ? (
-                <>
-                  <Text style={themed_s.text}>Khách cần kiểm tra và xác nhận biên bản trước khi bạn tiếp tục.</Text>
-                  <Button variant="secondary" label="Xem biên bản đang chờ" onPress={inspection} />
-                </>
-              ) : null}
-            </Card>
+            </View>
+            <RideRouteCard ride={ride} navigationStop={isDropoff ? "dropoff" : "pickup"}>
+              <Divider style={{ backgroundColor: colors.outlineVariant }} />
+              <View style={styles.routeSummary}>
+                <View style={styles.fare}>
+                  <Text style={themed_s.label}>Cước dự kiến</Text>
+                  <Text style={styles.fareAmount}>{formatMoney(ride.estimatedFare)}</Text>
+                </View>
+                {ride.route ? (
+                  <Text style={[themed_s.metric, styles.routeMetrics]}>
+                    {Math.ceil(ride.route.durationSeconds / 60)} phút · {formatDistance(ride.route.distanceMeters / 1000)}
+                  </Text>
+                ) : null}
+              </View>
+            </RideRouteCard>
+            {waitingForCustomer ? (
+              <Card style={themed_s.card}>
+                <Text style={themed_s.text}>Khách cần kiểm tra và xác nhận biên bản trước khi bạn tiếp tục.</Text>
+                <Button variant="secondary" label="Xem biên bản đang chờ" onPress={inspection} />
+              </Card>
+            ) : null}
             <RideCustomerCard key={ride.id} ride={ride} />
-            <Card style={themed_s.card}>
-              <Text style={themed_s.label}>ĐIỂM ĐÓN</Text>
-              <Text style={themed_s.text}>{ride.pickupAddress}</Text>
-              <Text style={themed_s.label}>GHI CHÚ ĐIỂM ĐÓN</Text>
-              <Text style={themed_s.text}>
-                {ride.pickupNote || "Khách chưa thêm ghi chú điểm đón."}
-              </Text>
-            </Card>
-            <Card style={themed_s.card}>
-              <Text style={themed_s.label}>ĐIỂM TRẢ</Text>
-              <Text style={themed_s.text}>{ride.dropoffAddress}</Text>
-              {ride.route ? (
-                <Text style={themed_s.text}>
-                  {(ride.route.distanceMeters / 1000).toFixed(2)} km ·{" "}
-                  {Math.ceil(ride.route.durationSeconds / 60)} phút
-                </Text>
-              ) : null}
-              <Text style={themed_s.title}>
-                {formatMoney(ride.estimatedFare)}
-              </Text>
-            </Card>
-            <Button
-              variant="secondary"
-              icon="directions"
-              iconPosition="leading"
-              onPress={() => void openExternalDirections(isDropoff ? ride.dropoff : ride.pickup)}
-              label={isDropoff ? "Mở chỉ đường tới điểm trả" : "Mở chỉ đường tới điểm đón"}
-            />
             {!needsInspection && !waitingForCustomer ? <Button variant="ghost" label="Xem biên bản bàn giao / hoàn trả" onPress={inspection} /> : null}
             <Button variant="ghost" label="Làm mới trạng thái chuyến" onPress={() => void query.refetch()} />
-            <Button variant="ghost" label="Trợ giúp về chuyến này" icon="help-outline" iconPosition="leading"
-              onPress={() => router.push({ pathname: "/support", params: { rideId: String(ride.id) } } as never)} />
-            {canCancel ? <Button variant="ghost" icon="cancel" iconPosition="leading" label="Hủy chuyến"
+            <Button variant="secondary" label="Trợ giúp về chuyến này" icon="help-outline" iconPosition="leading"
+              onPress={() => router.push({ pathname: "/support", params: { rideId: String(ride.id) } })} />
+            {canCancel ? <Button variant="ghost" icon="cancel" iconPosition="leading" label="Hủy chuyến" contentColor={colors.error}
               disabled={progress.isPending || cancel.isPending}
               onPress={() => {
                 const userId = useSessionStore.getState().user?.id;
@@ -164,3 +164,18 @@ export default function InProgressRideScreen() {
     </DriverPage>
   );
 }
+
+const styles = StyleSheet.create({
+  headerAction: { width: 48, height: 48, borderRadius: 24 },
+  progress: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8, gap: 8 },
+  progressLabels: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
+  step: { fontWeight: "700" },
+  stepDescription: { flexShrink: 1, textAlign: "right" },
+  progressBar: { height: 3, borderRadius: 999 },
+  tripHeader: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  routeSummary: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  fare: { gap: 2 },
+  fareAmount: { fontSize: 28, fontWeight: "700", fontVariant: ["tabular-nums"] },
+  routeMetrics: { flexShrink: 1 },
+  primaryAction: { minHeight: 52, justifyContent: "center" },
+});

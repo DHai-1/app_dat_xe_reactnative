@@ -6,6 +6,7 @@ export * from "./firebase/config";
 export * from "./firebase/phoneNumber";
 export * from "./notifications/push";
 export * from "./types";
+export * from "./types/ticket";
 export * from "./utils";
 export * from "./ws";
 
@@ -14,3 +15,7 @@ export * from "./i18n";
 export * from "./types/driver";
 
 export * from "./notifications/display";
+export * from './api/wallet';
+
+export * from './api/support';
+export * from "./api/tickets";

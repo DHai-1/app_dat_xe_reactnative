@@ -126,16 +126,7 @@ export const colors = {
   fieldBorder: "#E0E2E8",
   disabledText: "#73737C",
   verified: "#16a34a",
-  cardShadow: 'rgba(15, 23, 42, 0.08)',
 } as const;
-
-export const shadowStyle = {
-  shadowColor: 'rgba(15, 23, 42, 0.08)',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 1,
-  shadowRadius: 8,
-  elevation: 3,
-};
 
 export const fontFamily = {
   inter: Platform.OS === "web" ? "Roboto, Arial, sans-serif" : Platform.OS === "android" ? "sans-serif" : "System",

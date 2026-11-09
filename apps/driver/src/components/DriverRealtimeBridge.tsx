@@ -9,119 +9,148 @@ import {
 } from "@/lib/backgroundLocation";
 import { driverRealtime } from "@/lib/realtime";
 import { useSessionStore } from "@/lib/store";
-import type { CustomerRideDetail } from "@datxe/shared";
+import type { AuthProfile, CustomerRideDetail } from "@datxe/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Location from "expo-location";
-import { usePathname, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
-import { Alert } from "react-native";
-
-function isRideOffer(body: string): boolean {
-  try {
-    return JSON.parse(body)?.type === "RIDE_OFFER";
-  } catch {
-    return false;
-  }
-}
+import { AppState } from "react-native";
+import { useDriverHealth } from '@/lib/driverHealth';
 
 export function DriverRealtimeBridge() {
   const user = useSessionStore((state) => state.user);
   const client = useQueryClient();
-  const router = useRouter();
-  const pathname = usePathname();
-  const pathnameRef = useRef(pathname);
-  useEffect(() => {
-    pathnameRef.current = pathname;
-  }, [pathname]);
   const ride = useQuery({
     queryKey: ["driver", "activeRide"],
     queryFn: () =>
       request<CustomerRideDetail>("/driver/rides/active", { allowNull: true }),
     enabled: Boolean(user),
+    // Keep the chat badge correct even if a foreground STOMP/FCM frame was missed.
+    refetchInterval: 10000,
   });
   const rideId = ride.data?.id;
   const userId = user?.id;
-  const online = user?.status === "ONLINE";
+  const session = useQuery({
+    queryKey: ["driver", "session"],
+    queryFn: () => request<AuthProfile>("/auth/me"),
+    enabled: Boolean(userId),
+  });
+  const availableOrBusy = user?.status === "ONLINE" || user?.status === "BUSY";
+  const retryVersion = useDriverHealth(state => state.retryVersion);
+  const refreshLocation = useRef<(() => void) | null>(null);
+  // Profile and ride responses can update in either order when an offer is accepted.
+  const tracking = Boolean(rideId) || availableOrBusy;
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', state => {
+      if (state !== 'active') return;
+      refreshLocation.current?.();
+    });
+    return () => sub.remove();
+  }, []);
   useEffect(() => {
     useSessionStore.getState().setActiveRide(ride.data ?? null);
   }, [ride.data]);
   useEffect(() => {
     if (!userId) return;
-    const unsubscribe = driverRealtime.subscribe("/user/queue/trip", (message) => {
-      void client.invalidateQueries({ queryKey: ["driver"] });
-      // Mở ngay màn nhận chuyến để tài xế không bỏ lỡ offer 15 giây, kể cả khi đang ở tab khác.
-      if (isRideOffer(message.body) && pathnameRef.current !== "/ride/accept") {
-        router.push("/ride/accept");
-      }
-    });
     const reconnect = driverRealtime.onConnection((connected) => {
+      useDriverHealth.getState().update({ connected });
       if (connected) void client.invalidateQueries({ queryKey: ["driver"] });
     });
     driverRealtime.connect();
     return () => {
-      unsubscribe();
       reconnect();
+      useDriverHealth.getState().update({ connected: false });
       void driverRealtime.disconnect();
     };
     // Chỉ kết nối lại khi đổi tài khoản; việc refetch session (đổi object user) không được
     // ngắt WebSocket vì sẽ làm mất heartbeat và bỏ lỡ offer.
-  }, [userId, client, router]);
+  }, [userId, client]);
   useEffect(() => {
-    if (!userId || (!rideId && !online)) {
-      void stopDriverBackgroundLocation().catch(() => {});
-      return;
-    }
+    if (!userId || !tracking) return;
     let cancelled = false;
+    let checking = false;
+    let foregroundPermissionAsked = false;
     let watcher: Location.LocationSubscription | undefined;
-    void (async () => {
-      if (!(await Location.requestForegroundPermissionsAsync()).granted)
-        throw new Error("Cần quyền vị trí để khách theo dõi chuyến.");
-      if (cancelled) return;
-      const background = rideId
-        ? await startDriverBackgroundLocation().catch(() => false)
-        : false;
-      if (cancelled) {
-        await stopDriverBackgroundLocation();
-        return;
-      }
-      if (!background) {
-        watcher = await Location.watchPositionAsync(
-          {
-            accuracy: rideId
-              ? Location.Accuracy.High
-              : Location.Accuracy.Balanced,
-            timeInterval: env.locationIntervalMs,
-            distanceInterval: 0,
-          },
-          publishDriverLocation,
-        );
-        if (cancelled) watcher.remove();
-        if (rideId)
-          Alert.alert(
-            "Vị trí khi chạy nền chưa bật",
-            "Khách chỉ nhận vị trí khi app đang mở. Cho phép vị trí nền trong cài đặt để tiếp tục chia sẻ khi mở chỉ đường.",
+    let watcherStartedAt = 0;
+    let lastWatchFixAt = 0;
+
+    const ensureLocation = async (prompt: boolean) => {
+      if (cancelled || checking || (AppState.currentState && AppState.currentState !== 'active')) return;
+      checking = true;
+      try {
+        let foreground = await Location.getForegroundPermissionsAsync();
+        if (!foreground.granted && foreground.canAskAgain && prompt && !foregroundPermissionAsked && !cancelled) {
+          foregroundPermissionAsked = true;
+          foreground = await Location.requestForegroundPermissionsAsync();
+        }
+        const servicesEnabled = await Location.hasServicesEnabledAsync();
+        if (cancelled) return;
+        useDriverHealth.getState().update({ foregroundGranted: foreground.granted, servicesEnabled });
+        if (!foreground.granted || !servicesEnabled) {
+          watcher?.remove();
+          watcher = undefined;
+          throw new Error(foreground.granted ? 'Hãy bật dịch vụ vị trí/GPS của thiết bị.' : 'Cần quyền vị trí để nhận chuyến và chia sẻ vị trí.');
+        }
+
+        // A native watcher can silently stop emitting after the GPS provider is toggled.
+        if (watcher && Date.now() - Math.max(watcherStartedAt, lastWatchFixAt) >= 30_000) {
+          watcher.remove();
+          watcher = undefined;
+        }
+        if (!watcher) {
+          startDriverLocationHeartbeat();
+          void restoreLastLocation().catch(() => {});
+          void Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High, mayShowUserSettingsDialog: false })
+            .then(position => { if (!cancelled) void publishDriverLocation(position); })
+            .catch(() => { /* The watcher and heartbeat can still recover a fix. */ });
+          watcherStartedAt = Date.now();
+          watcher = await Location.watchPositionAsync(
+            { accuracy: Location.Accuracy.High, timeInterval: env.locationIntervalMs, distanceInterval: 0, mayShowUserSettingsDialog: false },
+            position => {
+              if (cancelled) return;
+              if (Date.now() - position.timestamp < 30_000) lastWatchFixAt = Date.now();
+              void publishDriverLocation(position);
+            },
+            error => {
+              if (!cancelled) useDriverHealth.getState().update({ error });
+            },
           );
+          if (cancelled) { watcher.remove(); return; }
+        }
+        // Android can open a settings activity for this permission. Do not await it here.
+        void startDriverBackgroundLocation().then(async backgroundRunning => {
+          const permission = await Location.getBackgroundPermissionsAsync().catch(() => null);
+          if (!cancelled) useDriverHealth.getState().update({
+            backgroundRunning, ...(permission ? { backgroundGranted: permission.granted } : {}),
+          });
+        }).catch(() => {
+          if (!cancelled) useDriverHealth.getState().update({ backgroundRunning: false });
+        });
+      } catch (error) {
+        if (!cancelled) useDriverHealth.getState().update({ error: error instanceof Error ? error.message : 'Hãy kiểm tra quyền vị trí.' });
+      } finally {
+        checking = false;
       }
-      // Lấy ngay một vị trí hiện tại để có lastKnown cho heartbeat, kể cả khi GPS
-      // không bắn callback ngay sau khi mở app.
-      void Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
-        .then(publishDriverLocation)
-        .catch(() => {});
-      void restoreLastLocation().catch(() => {});
-      // Giữ heartbeat cho backend dù GPS không bắn callback khi tài xế đứng yên.
-      startDriverLocationHeartbeat();
-    })().catch((error) => {
-      if (!cancelled)
-        Alert.alert(
-          "Chưa thể chia sẻ vị trí",
-          error instanceof Error ? error.message : "Hãy kiểm tra quyền vị trí.",
-        );
-    });
+    };
+    const refresh = () => { void ensureLocation(false); };
+    refreshLocation.current = refresh;
+    void ensureLocation(true);
+    const timer = setInterval(refresh, 10_000);
     return () => {
       cancelled = true;
+      refreshLocation.current = null;
+      clearInterval(timer);
       watcher?.remove();
       void stopDriverBackgroundLocation().catch(() => {});
     };
-  }, [userId, rideId, online]);
+  }, [userId, tracking, retryVersion]);
+  useEffect(() => {
+    if (!userId || tracking || !ride.isSuccess) return;
+    // Also cleans up a native task left behind by a previous process.
+    void stopDriverBackgroundLocation().catch(() => {});
+    useDriverHealth.getState().update({ foregroundGranted: null, servicesEnabled: null, backgroundGranted: null, error: '' });
+  }, [userId, tracking, ride.isSuccess]);
+  useEffect(() => {
+    if (session.data?.id === userId && session.data) useSessionStore.getState().setUser(session.data);
+  }, [session.data, userId]);
   return null;
 }
