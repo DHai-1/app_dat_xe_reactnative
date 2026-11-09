@@ -113,15 +113,15 @@ export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón'
     return cumulative;
   }, [coordinates]);
 
-  const progress = useMemo(() => {
-    if (!current || coordinates.length === 0) return 0;
+  const { progress, nearestIndex } = useMemo(() => {
+    if (!current || coordinates.length === 0) return { progress: 0, nearestIndex: 0 };
     let best = 0;
     let bestDistance = Infinity;
     for (let index = 0; index < coordinates.length; index += 1) {
       const value = distanceMeters(coordinates[index], current);
       if (value < bestDistance) { bestDistance = value; best = index; }
     }
-    return routeCumulative[best] ?? 0;
+    return { progress: routeCumulative[best] ?? 0, nearestIndex: best };
   }, [current, coordinates, routeCumulative]);
 
   // Khoảng cách dọc polyline (haversine) nhỏ hơn khoảng cách thực do provider trả.
@@ -183,9 +183,13 @@ export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón'
     }
   }, [current, coordinates, onRefresh]);
 
-  const routeLine = useMemo(() => (coordinates.length > 1
-    ? { type: 'LineString' as const, coordinates: coordinates.map(point => [point.lng, point.lat] as [number, number]) }
-    : null), [coordinates]);
+  // Chỉ vẽ phần đường còn lại (từ vị trí tài xế tới đích), cập nhật mỗi lần GPS đổi.
+  const routeLine = useMemo(() => {
+    const remaining = coordinates.slice(nearestIndex);
+    return remaining.length > 1
+      ? { type: 'LineString' as const, coordinates: remaining.map(point => [point.lng, point.lat] as [number, number]) }
+      : null;
+  }, [coordinates, nearestIndex]);
 
   const step = steps[stepIndex];
   const stepEnd = steps.slice(0, stepIndex + 1).reduce((sum, value) => sum + value.distanceMeters, 0);
