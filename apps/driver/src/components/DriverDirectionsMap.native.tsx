@@ -38,10 +38,30 @@ function arrowFor(instruction: string): string {
   return '↑';
 }
 
+// Chỉ dẫn phải luôn đọc bằng tiếng Việt. Nếu provider trả tiếng Anh, dịch nhanh
+// các mẫu phổ biến; tiếng Việt giữ nguyên.
+function localizeInstruction(value: string): string {
+  return value
+    .replace(/^Turn right onto\s+/i, 'Rẽ phải vào ')
+    .replace(/^Turn left onto\s+/i, 'Rẽ trái vào ')
+    .replace(/^Turn right on\s+/i, 'Rẽ phải vào ')
+    .replace(/^Turn left on\s+/i, 'Rẽ trái vào ')
+    .replace(/^Continue straight onto\s+/i, 'Đi thẳng vào ')
+    .replace(/^Continue straight on\s+/i, 'Đi thẳng vào ')
+    .replace(/^Continue straight\s*$/i, 'Đi thẳng')
+    .replace(/^Make a U-turn onto\s+/i, 'Quay đầu vào ')
+    .replace(/^Head\s+/i, 'Đi ')
+    .replace(/\bonto\b/gi, 'vào')
+    .replace(/\bon the right\b/gi, 'bên phải')
+    .replace(/\bon the left\b/gi, 'bên trái')
+    .replace(/\bDestination\b/gi, 'Điểm đến');
+}
+
 export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón', directions, onRefresh }: Props) {
   const camera = useRef<CameraRef>(null);
   const [current, setCurrent] = useState<RideCoordinates | null>(null);
   const [voiceMuted, setVoiceMuted] = useState(false);
+  const [voiceId, setVoiceId] = useState<string | undefined>(undefined);
   const [stepIndex, setStepIndex] = useState(0);
   const announced = useRef<Set<number>>(new Set());
   const voiceMutedRef = useRef(false);
@@ -49,6 +69,16 @@ export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón'
   const mapStyle = env.goongStyleUrl;
 
   useEffect(() => { voiceMutedRef.current = voiceMuted; }, [voiceMuted]);
+
+  // Chọn giọng đọc tiếng Việt có sẵn trên thiết bị.
+  useEffect(() => {
+    void Speech.getAvailableVoicesAsync()
+      .then(voices => {
+        const vietnamese = voices.find(voice => voice.language?.toLowerCase().startsWith('vi'));
+        if (vietnamese) setVoiceId(vietnamese.identifier);
+      })
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -99,13 +129,13 @@ export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón'
     setStepIndex(index);
     if (!announced.current.has(index)) {
       announced.current.add(index);
-      const text = steps[index]?.instruction;
+      const text = localizeInstruction(steps[index]?.instruction ?? '').trim();
       if (text && !voiceMutedRef.current) {
         void Speech.stop();
-        Speech.speak(text, { language: 'vi-VN', rate: 0.95, pitch: 1 });
+        Speech.speak(text, { language: 'vi-VN', voice: voiceId, rate: 0.95, pitch: 1 });
       }
     }
-  }, [progress, steps]);
+  }, [progress, steps, voiceId]);
 
   useEffect(() => {
     if (!current) return;
@@ -129,6 +159,7 @@ export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón'
   const step = steps[stepIndex];
   const stepEnd = steps.slice(0, stepIndex + 1).reduce((sum, value) => sum + value.distanceMeters, 0);
   const stepRemaining = Math.max(0, stepEnd - progress);
+  const displayInstruction = localizeInstruction(step?.instruction ?? '') || `Đang đi tới ${targetLabel}`;
 
   if (!mapStyle) {
     return <View style={styles.empty}><Text style={styles.emptyText}>Thiếu EXPO_PUBLIC_GOONG_MAP_KEY để hiển thị bản đồ.</Text></View>;
@@ -173,11 +204,9 @@ export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón'
         </GeoJSONSource>
       </Map>
       <View style={styles.maneuver}>
-        <Text style={styles.maneuverArrow}>{arrowFor(step?.instruction ?? '')}</Text>
+        <Text style={styles.maneuverArrow}>{arrowFor(displayInstruction)}</Text>
         <View style={styles.maneuverCopy}>
-          <Text style={styles.maneuverInstruction} numberOfLines={2}>
-            {step?.instruction || `Đang đi tới ${targetLabel}`}
-          </Text>
+          <Text style={styles.maneuverInstruction} numberOfLines={2}>{displayInstruction}</Text>
           <Text style={styles.maneuverDistance}>{step ? formatDistance(stepRemaining) : ''}</Text>
         </View>
       </View>
