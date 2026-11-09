@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "PtitGo Tài xế",
+    "name": "PtitGo Driver",
     "slug": "drivemate-driver",
     "scheme": "drivemate-driver",
     "version": "1.0.0",
@@ -8,7 +8,12 @@
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "bundleIdentifier": "com.datxe.driver"
+      "bundleIdentifier": "com.datxe.driver",
+      "googleServicesFile": "./GoogleServiceDriver-Info.plist",
+      "infoPlist": {
+        "CFBundleDisplayName": "PtitGo Tài xế",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.datxe.driver",

@@ -43,8 +43,6 @@ module.exports = ({ config }) => {
 
   return {
     ...config,
-    // Driver dùng Mapbox; MapLibre chỉ dùng ở customer (GoongMap) nên loại khỏi autolinking.
-    autolinking: { exclude: ['@maplibre/maplibre-react-native'] },
     android: {
       ...config.android,
       ...(fs.existsSync(googleServicesFile) ? { googleServicesFile: './google-services.json' } : {}),
