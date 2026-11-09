@@ -175,6 +175,20 @@ export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón'
     Speech.speak(text, { language: 'vi-VN', voice: voiceId, rate: 0.95, pitch: 1 });
   }, [scaledProgress, stepIndex, steps, voiceId]);
 
+  // Nhắc "Bây giờ, ..." khi tới sát chỗ rẽ (< 20 m).
+  useEffect(() => {
+    if (steps.length === 0 || voiceMutedRef.current) return;
+    const next = steps[stepIndex + 1];
+    if (!next) return;
+    const stepEnd = steps.slice(0, stepIndex + 1).reduce((sum, value) => sum + value.distanceMeters, 0);
+    const remaining = Math.max(0, stepEnd - scaledProgress);
+    if (remaining > 20 || announcedAhead.current.has(`${stepIndex}:now`)) return;
+    announcedAhead.current.add(`${stepIndex}:now`);
+    const text = `Bây giờ, ${localizeInstruction(next.instruction).trim()}`;
+    void Speech.stop();
+    Speech.speak(text, { language: 'vi-VN', voice: voiceId, rate: 0.95, pitch: 1 });
+  }, [scaledProgress, stepIndex, steps, voiceId]);
+
   useEffect(() => {
     if (!current) return;
     if (!overviewShown.current && coordinates.length > 1) {
