@@ -118,13 +118,21 @@ export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón'
     return routeCumulative[best] ?? 0;
   }, [current, coordinates, routeCumulative]);
 
+  // Khoảng cách dọc polyline (haversine) nhỏ hơn khoảng cách thực do provider trả.
+  // Quy đổi tiến độ theo tổng khoảng cách thực để chọn đúng bước.
+  const scaledProgress = useMemo(() => {
+    const routeTotal = routeCumulative[routeCumulative.length - 1] ?? 0;
+    const actualTotal = directions?.distance ?? routeTotal;
+    return routeTotal > 0 && actualTotal > 0 ? (progress / routeTotal) * actualTotal : progress;
+  }, [progress, routeCumulative, directions?.distance]);
+
   useEffect(() => {
     if (steps.length === 0) return;
     let cumulative = 0;
     let index = steps.length - 1;
     for (let cursor = 0; cursor < steps.length; cursor += 1) {
       cumulative += steps[cursor].distanceMeters;
-      if (progress <= cumulative) { index = cursor; break; }
+      if (scaledProgress <= cumulative) { index = cursor; break; }
     }
     setStepIndex(index);
     if (!announced.current.has(index)) {
@@ -135,7 +143,7 @@ export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón'
         Speech.speak(text, { language: 'vi-VN', voice: voiceId, rate: 0.95, pitch: 1 });
       }
     }
-  }, [progress, steps, voiceId]);
+  }, [scaledProgress, steps, voiceId]);
 
   useEffect(() => {
     if (!current) return;
@@ -152,13 +160,30 @@ export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón'
     camera.current?.jumpTo({ center: [current.lng, current.lat], zoom: 17 });
   }, [current, coordinates]);
 
+  // Tự cập nhật tuyến đường: lệch route > 40m, hoặc đã đi > 25m sau mỗi 20 giây.
+  const lastRefresh = useRef<{ at: number; position: RideCoordinates } | null>(null);
+  useEffect(() => {
+    if (!current || !onRefresh || coordinates.length === 0) return;
+    const now = Date.now();
+    const previous = lastRefresh.current;
+    if (!previous) { lastRefresh.current = { at: now, position: current }; return; }
+    let nearest = Infinity;
+    for (const point of coordinates) nearest = Math.min(nearest, distanceMeters(point, current));
+    const elapsed = now - previous.at;
+    const moved = distanceMeters(previous.position, current);
+    if ((nearest > 40 && elapsed > 5000) || (elapsed > 20000 && moved > 25)) {
+      lastRefresh.current = { at: now, position: current };
+      onRefresh();
+    }
+  }, [current, coordinates, onRefresh]);
+
   const routeLine = useMemo(() => (coordinates.length > 1
     ? { type: 'LineString' as const, coordinates: coordinates.map(point => [point.lng, point.lat] as [number, number]) }
     : null), [coordinates]);
 
   const step = steps[stepIndex];
   const stepEnd = steps.slice(0, stepIndex + 1).reduce((sum, value) => sum + value.distanceMeters, 0);
-  const stepRemaining = Math.max(0, stepEnd - progress);
+  const stepRemaining = Math.max(0, stepEnd - scaledProgress);
   const displayInstruction = localizeInstruction(step?.instruction ?? '') || `Đang đi tới ${targetLabel}`;
 
   if (!mapStyle) {
