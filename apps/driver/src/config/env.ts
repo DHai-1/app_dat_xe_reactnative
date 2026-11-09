@@ -10,7 +10,7 @@ export const env = {
   facebookClientToken: process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN?.trim(),
   goongMapKey: process.env.EXPO_PUBLIC_GOONG_MAP_KEY?.trim(),
   goongStyleUrl: process.env.EXPO_PUBLIC_GOONG_MAP_KEY?.trim()
-    ? `https://tiles.goong.io/assets/navigation_day.json?api_key=${encodeURIComponent(process.env.EXPO_PUBLIC_GOONG_MAP_KEY.trim())}`
+    ? `https://tiles.goong.io/assets/goong_map_web.json?api_key=${encodeURIComponent(process.env.EXPO_PUBLIC_GOONG_MAP_KEY.trim())}`
     : undefined,
   sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN?.trim(),
 };
