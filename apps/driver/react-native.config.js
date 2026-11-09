@@ -1,9 +1,12 @@
-// Driver dùng Mapbox (@rnmapbox/maps + navigation). MapLibre chỉ dùng ở customer
-// (qua @datxe/ui/goong-map) nên phải loại khỏi autolinking RN để tránh trùng
-// TurboModule NativeMapViewModule (duplicate symbol khi link).
+// Driver dùng MapLibre (Goong style, giống customer). Mapbox cũ (@rnmapbox/*) không còn
+// dùng nên loại khỏi autolinking RN để tránh trùng TurboModule NativeMapViewModule
+// (duplicate symbol khi link iOS).
 module.exports = {
   dependencies: {
-    '@maplibre/maplibre-react-native': {
+    '@rnmapbox/maps': {
+      platforms: { ios: null, android: null },
+    },
+    '@rnmapbox/navigation': {
       platforms: { ios: null, android: null },
     },
   },

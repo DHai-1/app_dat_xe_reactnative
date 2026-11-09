@@ -1,169 +1,98 @@
 import { env } from '@/config/env';
 import type { RideCoordinates } from '@datxe/shared';
-import Navigation, { NAVIGATION_MAP_VIEW_IMPL, NavigationViewport, type Route } from '@rnmapbox/navigation';
-import Mapbox, { MapView } from '@rnmapbox/maps';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { Camera, GeoJSONSource, Layer, Map, type CameraRef } from '@maplibre/maplibre-react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as Speech from 'expo-speech';
-import { MaterialIcons } from '@expo/vector-icons';
-import { Pressable } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 type Props = { destination: RideCoordinates; targetLabel?: string };
 
-export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón' }: Props) {
-  const [current, setCurrent] = useState<RideCoordinates | null>(null);
-  const [route, setRoute] = useState<Route | null>(null);
-  const [instruction, setInstruction] = useState('');
-  const [secondaryInstruction, setSecondaryInstruction] = useState('');
-  const [secondaryRoad, setSecondaryRoad] = useState('');
-  const [maneuverRoad, setManeuverRoad] = useState('');
-  const [roadShield, setRoadShield] = useState('');
-  const [stepDistance, setStepDistance] = useState(0);
-  const [maneuverArrow, setManeuverArrow] = useState('↑');
-  const [voiceMuted, setVoiceMuted] = useState(false);
-  const [speedLimit, setSpeedLimit] = useState<number | null>(60);
+type DirectionsStep = {
+  instruction: string;
+  distanceMeters: number;
+  start: RideCoordinates;
+  end: RideCoordinates;
+};
 
-  useEffect(() => {
-    let active = true;
-    const token = env.mapboxToken?.trim();
-    if (token) {
-      void Mapbox.setAccessToken(token);
-      Navigation.setAccessToken(token);
-    }
-    void Location.requestForegroundPermissionsAsync().then(permission => {
-      if (!permission.granted) return;
-      return Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    }).then(position => {
-      if (active && position) setCurrent({ lat: position.coords.latitude, lng: position.coords.longitude });
-    }).catch(() => undefined);
-    return () => { active = false; };
-  }, []);
+type DirectionsRoute = {
+  coordinates: RideCoordinates[];
+  steps: DirectionsStep[];
+};
 
-  useEffect(() => {
-    if (!current) return;
-    let cancelled = false;
-    const waypoints = [
-      [current.lng, current.lat] as [number, number],
-      { coordinate: [destination.lng, destination.lat] as [number, number], name: `Điểm ${targetLabel} khách` },
-    ];
-    void Navigation.requestRoutes({
-      waypoints,
-      profile: 'driving-traffic',
-      language: 'vi',
-      units: 'metric',
-    }).then(response => {
-      response.alternatives.forEach(alternative => alternative.release());
-      if (cancelled) {
-        response.main.release();
-        return;
-      }
-      setRoute(previous => {
-        previous?.release();
-        return response.main;
-      });
-      setInstruction(`Đang đi tới ${targetLabel}`);
-    }).catch(error => {
-      if (!cancelled) console.warn('Mapbox Navigation route:', error);
-    });
-    return () => { cancelled = true; };
-  }, [current, destination.lat, destination.lng, targetLabel]);
+function trimHtml(value: string): string {
+  return value.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
+}
 
-  useEffect(() => {
-    Navigation.setVoiceMuted(true);
-    const subscription = Navigation.addVoiceInstructionListener(instruction => {
-      void Speech.stop();
-      Speech.speak(localizeInstruction(instruction.text), {
-        language: 'vi-VN',
-        rate: 0.92,
-        pitch: 1,
-      });
-    });
-    return () => {
-      subscription.remove();
-      void Speech.stop();
-    };
-  }, []);
+function decodePolyline(encoded: string): RideCoordinates[] {
+  const points: RideCoordinates[] = [];
+  let index = 0;
+  let lat = 0;
+  let lng = 0;
+  while (index < encoded.length) {
+    let result = 0;
+    let shift = 0;
+    let byte: number;
+    do {
+      byte = encoded.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20);
+    lat += result & 1 ? ~(result >> 1) : result >> 1;
+    result = 0;
+    shift = 0;
+    do {
+      byte = encoded.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20);
+    lng += result & 1 ? ~(result >> 1) : result >> 1;
+    points.push({ lat: lat / 1e5, lng: lng / 1e5 });
+  }
+  return points;
+}
 
-  useEffect(() => {
-    if (!route) return;
-    void Navigation.startActiveGuidance(route).catch(error => {
-      console.warn('Mapbox Navigation guidance:', error);
-    });
-    return () => {
-      Navigation.stopNavigation();
-    };
-  }, [route]);
+async function googleDirections(origin: RideCoordinates, destination: RideCoordinates, key: string, signal: AbortSignal): Promise<DirectionsRoute> {
+  const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}&mode=driving&language=vi&key=${encodeURIComponent(key)}`;
+  const response = await fetch(url, { signal });
+  const data: {
+    status?: string;
+    error_message?: string;
+    routes?: Array<{
+      overview_polyline?: { points?: string };
+      legs?: Array<{
+        distance?: { value?: number };
+        steps?: Array<{
+          html_instructions?: string;
+          distance?: { value?: number };
+          start_location?: { lat: number; lng: number };
+          end_location?: { lat: number; lng: number };
+          maneuver?: string;
+        }>;
+      }>;
+    }>;
+  } = await response.json();
+  const leg = data.routes?.[0]?.legs?.[0];
+  if (data.status !== 'OK' || !leg) throw new Error(data.error_message || data.status || 'Không lấy được đường đi.');
+  const coordinates = decodePolyline(data.routes?.[0]?.overview_polyline?.points ?? '');
+  const steps: DirectionsStep[] = (leg.steps ?? []).map(step => ({
+    instruction: trimHtml(step.html_instructions ?? ''),
+    distanceMeters: step.distance?.value ?? 0,
+    start: { lat: step.start_location?.lat ?? 0, lng: step.start_location?.lng ?? 0 },
+    end: { lat: step.end_location?.lat ?? 0, lng: step.end_location?.lng ?? 0 },
+  }));
+  return { coordinates, steps };
+}
 
-  useEffect(() => {
-    const subscription = Navigation.addRouteProgressListener(progress => {
-      const modifier = progress.maneuverModifier.toLowerCase();
-      setManeuverArrow(
-        modifier.includes('left') ? '←' : modifier.includes('right') ? '→' : '↑',
-      );
-      setInstruction(
-        progress.maneuverInstruction ||
-          (progress.maneuverType === 'straight' ? 'Đi thẳng' : progress.secondaryInstruction) ||
-          `Đang đi tới ${targetLabel}`,
-      );
-      const road = roadFromComponents(progress.maneuverComponents);
-      const roadDetails = roadDetailsFromComponents(progress.maneuverComponents);
-      setRoadShield(roadDetails.shield);
-      setManeuverRoad(roadDetails.name || road || localizeInstruction(progress.maneuverInstruction || ''));
-      setSecondaryInstruction(progress.secondaryInstruction || progress.subInstruction || '');
-      setSecondaryRoad(roadFromComponents(progress.secondaryComponents));
-      setStepDistance(progress.stepDistanceRemaining);
-    });
-    return () => subscription.remove();
-  }, []);
-
-  useEffect(() => {
-    const subscription = Navigation.addLocationListener(location => {
-      const value = location.speedLimit?.speed;
-      if (typeof value === 'number' && Number.isFinite(value) && value > 0) setSpeedLimit(Math.round(value));
-    });
-    return () => subscription.remove();
-  }, []);
-
-  if (!current || !route) return <View style={styles.empty}><ActivityIndicator color="#B42318" /><Text style={styles.emptyText}>{current ? 'Đang tính đường…' : 'Đang lấy vị trí hiện tại…'}</Text></View>;
-  const displayInstruction = instruction || `Đang đi tới ${targetLabel}`;
-  return <View style={StyleSheet.absoluteFill}>
-    <MapView style={StyleSheet.absoluteFill} mapViewImpl={NAVIGATION_MAP_VIEW_IMPL} styleURL={env.goongStyleUrl ?? "mapbox://styles/mapbox/streets-v12"}>
-      <Mapbox.UserLocation
-        visible
-        androidRenderMode="normal"
-        minDisplacement={1}
-        showsUserHeadingIndicator={false}
-      />
-      <NavigationViewport
-        padding={{ top: 88, bottom: 150, left: 24, right: 24 }}
-        routeLineStyle={{ color: '#B42318', casingColor: '#FFFFFF', traveledColor: 'rgba(180, 35, 24, 0.35)' }}
-      />
-    </MapView>
-    <View style={styles.maneuver}>
-      <View style={styles.maneuverRow}>
-        <Text style={styles.maneuverArrow}>{maneuverArrow}</Text>
-        {roadShield ? <View style={styles.roadShield}><Text style={styles.roadShieldText}>{roadShield}</Text></View> : null}
-        {roadShield && (maneuverRoad || displayInstruction) ? <Text style={styles.roadSeparator}>/</Text> : null}
-        <Text style={styles.maneuverRoad}>{maneuverRoad || localizeInstruction(displayInstruction)}</Text>
-      </View>
-      <Text style={styles.maneuverDistance}>{formatDistance(stepDistance)}</Text>
-      <View style={styles.maneuverDivider} />
-      <Text style={styles.maneuverSecondary}>{withThen(secondaryRoad || secondaryInstruction || maneuverRoad || displayInstruction)}</Text>
-    </View>
-    {speedLimit !== null ? <View style={styles.speedLimit}><Text style={styles.speedLimitText}>{speedLimit}</Text></View> : null}
-    <View style={styles.mapControls}>
-      <Pressable style={styles.mapControl} onPress={() => { const next = !voiceMuted; setVoiceMuted(next); Navigation.setVoiceMuted(next); if (next) void Speech.stop(); }}>
-        <MaterialIcons name={voiceMuted ? 'volume-off' : 'volume-up'} size={22} color="#344054" />
-      </Pressable>
-      <Pressable style={styles.mapControl} onPress={() => Navigation.setCameraState('following')}>
-        <MaterialIcons name="my-location" size={22} color="#344054" />
-      </Pressable>
-      <Pressable style={styles.mapControl} onPress={() => Navigation.setCameraState('overview')}>
-        <MaterialIcons name="alt-route" size={22} color="#344054" />
-      </Pressable>
-    </View>
-  </View>;
+function distanceMeters(a: RideCoordinates, b: RideCoordinates): number {
+  const radius = 6371000;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const lat1 = (a.lat * Math.PI) / 180;
+  const lat2 = (b.lat * Math.PI) / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * radius * Math.asin(Math.sqrt(h));
 }
 
 function formatDistance(meters: number): string {
@@ -172,62 +101,202 @@ function formatDistance(meters: number): string {
   return `${(meters / 1000).toFixed(1)} km`;
 }
 
-function localizeInstruction(value: string): string {
-  return value
-    .replace(/^Then\s+/i, 'Sau đó ')
-    .replace(/^Turn right onto\s+/i, 'Rẽ phải vào ')
-    .replace(/^Turn left onto\s+/i, 'Rẽ trái vào ')
-    .replace(/^Turn right on\s+/i, 'Rẽ phải vào ')
-    .replace(/^Turn left on\s+/i, 'Rẽ trái vào ')
-    .replace(/^Continue straight onto\s+/i, 'Đi thẳng vào ')
-    .replace(/^Continue straight on\s+/i, 'Đi thẳng vào ')
-    .replace(/^Continue straight\s*$/i, 'Đi thẳng')
-    .replace(/^Make a U-turn onto\s+/i, 'Quay đầu vào ')
-    .replace(/^Make a U-turn on\s+/i, 'Quay đầu vào ')
-    .replace(/\bonto\b/gi, 'vào')
-    .replace(/\bon the right\b/gi, 'bên phải')
-    .replace(/\bon the left\b/gi, 'bên trái');
+function arrowFor(instruction: string): string {
+  const value = instruction.toLowerCase();
+  if (value.includes('trái') || value.includes('left')) return '←';
+  if (value.includes('phải') || value.includes('right')) return '→';
+  return '↑';
 }
 
-function withThen(value: string): string {
-  const localized = localizeInstruction(value);
-  return localized.toLowerCase().startsWith('sau đó ') ? localized : `Sau đó ${localized}`;
-}
+export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón' }: Props) {
+  const camera = useRef<CameraRef>(null);
+  const [current, setCurrent] = useState<RideCoordinates | null>(null);
+  const [route, setRoute] = useState<DirectionsRoute | null>(null);
+  const [error, setError] = useState('');
+  const [stepIndex, setStepIndex] = useState(0);
+  const [voiceMuted, setVoiceMuted] = useState(false);
+  const announced = useRef<Set<number>>(new Set());
+  const voiceMutedRef = useRef(false);
+  const overviewShown = useRef(false);
+  const mapStyle = env.goongStyleUrl;
 
-function roadFromComponents(components: ReadonlyArray<{ type: string; text: string }>): string {
-  return components
-    .filter(component => component.type !== 'delimiter' && component.text.trim())
-    .map(component => component.text.trim())
-    .filter((text, index, values) => values.indexOf(text) === index)
-    .join(' / ');
-}
+  useEffect(() => { voiceMutedRef.current = voiceMuted; }, [voiceMuted]);
 
-function roadDetailsFromComponents(components: ReadonlyArray<{ type: string; text: string }>) {
-  return {
-    shield: components.find(component => component.type === 'icon' && component.text.trim())?.text.trim() || '',
-    name: components
-      .filter(component => component.type === 'text' && component.text.trim())
-      .map(component => component.text.trim())
-      .filter((text, index, values) => values.indexOf(text) === index)
-      .join(' / '),
-  };
+  useEffect(() => {
+    let active = true;
+    let subscription: Location.LocationSubscription | null = null;
+    void (async () => {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) {
+        if (active) setError('Cần quyền vị trí để chỉ đường.');
+        return;
+      }
+      const initial = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      if (active) setCurrent({ lat: initial.coords.latitude, lng: initial.coords.longitude });
+      subscription = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.High, distanceInterval: 5, timeInterval: 3000 },
+        position => { if (active) setCurrent({ lat: position.coords.latitude, lng: position.coords.longitude }); },
+      );
+    })().catch(value => { if (active) setError(value?.message ?? 'Không lấy được vị trí.'); });
+    return () => { active = false; subscription?.remove(); };
+  }, []);
+
+  useEffect(() => {
+    if (!current) return;
+    const key = env.googleMapsKey;
+    if (!key) { setError('Thiếu EXPO_PUBLIC_GOOGLE_MAPS_KEY để lấy đường đi.'); return; }
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      void googleDirections(current, destination, key, controller.signal)
+        .then(next => {
+          if (controller.signal.aborted) return;
+          setRoute(next);
+          setError('');
+          announced.current = new Set();
+          setStepIndex(0);
+          overviewShown.current = false;
+        })
+        .catch(value => { if (!controller.signal.aborted) setError(value?.message ?? 'Không lấy được đường đi.'); });
+    }, 400);
+    return () => { controller.abort(); clearTimeout(timer); };
+  }, [current?.lat, current?.lng, destination.lat, destination.lng]);
+
+  useEffect(() => {
+    if (!route || !current || route.steps.length === 0) return;
+    let next = route.steps.length - 1;
+    for (let index = 0; index < route.steps.length; index += 1) {
+      if (distanceMeters(current, route.steps[index].end) > 15) { next = index; break; }
+    }
+    setStepIndex(next);
+    if (!announced.current.has(next)) {
+      announced.current.add(next);
+      const text = route.steps[next]?.instruction;
+      if (text && !voiceMutedRef.current) {
+        void Speech.stop();
+        Speech.speak(text, { language: 'vi-VN', rate: 0.95, pitch: 1 });
+      }
+    }
+  }, [current, route]);
+
+  useEffect(() => {
+    if (!current) return;
+    if (!overviewShown.current && route && route.coordinates.length > 1) {
+      overviewShown.current = true;
+      const lngs = route.coordinates.map(point => point.lng);
+      const lats = route.coordinates.map(point => point.lat);
+      camera.current?.fitBounds(
+        [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)],
+        { padding: { top: 120, bottom: 180, left: 40, right: 40 }, duration: 500 },
+      );
+      return;
+    }
+    camera.current?.jumpTo({ center: [current.lng, current.lat], zoom: 17 });
+  }, [current, route]);
+
+  const routeLine = useMemo(() => route && route.coordinates.length > 1
+    ? { type: 'LineString' as const, coordinates: route.coordinates.map(point => [point.lng, point.lat] as [number, number]) }
+    : null, [route]);
+
+  const step = route?.steps[stepIndex];
+  const remaining = current && step ? distanceMeters(current, step.end) : 0;
+
+  if (!current) {
+    return <View style={styles.empty}><ActivityIndicator color="#B42318" /><Text style={styles.emptyText}>Đang lấy vị trí hiện tại…</Text></View>;
+  }
+  if (error) {
+    return <View style={styles.empty}><Text style={styles.emptyText}>{error}</Text></View>;
+  }
+  if (!mapStyle) {
+    return <View style={styles.empty}><Text style={styles.emptyText}>Thiếu EXPO_PUBLIC_GOONG_MAP_KEY để hiển thị bản đồ.</Text></View>;
+  }
+
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <Map
+        style={StyleSheet.absoluteFill}
+        mapStyle={mapStyle}
+        androidView="texture"
+        logo={false}
+        attributionPosition={{ bottom: 8, left: 8 }}
+      >
+        <Camera ref={camera} maxZoom={19} initialViewState={{ center: [current.lng, current.lat], zoom: 17 }} />
+        {routeLine ? (
+          <GeoJSONSource id="driver-route" data={routeLine}>
+            <Layer id="driver-route-casing" type="line"
+              paint={{ 'line-color': '#FFFFFF', 'line-width': 8 }}
+              layout={{ 'line-cap': 'round', 'line-join': 'round' }} />
+            <Layer id="driver-route-line" type="line"
+              paint={{ 'line-color': '#B42318', 'line-width': 5 }}
+              layout={{ 'line-cap': 'round', 'line-join': 'round' }} />
+          </GeoJSONSource>
+        ) : null}
+        <GeoJSONSource id="driver-position" data={{
+          type: 'Feature', geometry: { type: 'Point', coordinates: [current.lng, current.lat] }, properties: {},
+        }}>
+          <Layer id="driver-position-dot" type="circle" paint={{
+            'circle-radius': 8, 'circle-color': '#2563EB', 'circle-stroke-width': 3, 'circle-stroke-color': '#FFFFFF',
+          }} />
+        </GeoJSONSource>
+        <GeoJSONSource id="driver-destination" data={{
+          type: 'Feature', geometry: { type: 'Point', coordinates: [destination.lng, destination.lat] }, properties: {},
+        }}>
+          <Layer id="driver-destination-dot" type="circle" paint={{
+            'circle-radius': 9, 'circle-color': '#16A34A', 'circle-stroke-width': 3, 'circle-stroke-color': '#FFFFFF',
+          }} />
+        </GeoJSONSource>
+      </Map>
+      <View style={styles.maneuver}>
+        <Text style={styles.maneuverArrow}>{arrowFor(step?.instruction ?? '')}</Text>
+        <View style={styles.maneuverCopy}>
+          <Text style={styles.maneuverInstruction} numberOfLines={2}>
+            {step?.instruction || (route ? `Đang đi tới ${targetLabel}` : 'Đang tính đường…')}
+          </Text>
+          <Text style={styles.maneuverDistance}>{formatDistance(remaining)}</Text>
+        </View>
+      </View>
+      <View style={styles.mapControls}>
+        <Pressable
+          accessibilityLabel={voiceMuted ? 'Bật giọng chỉ đường' : 'Tắt giọng chỉ đường'}
+          style={styles.mapControl}
+          onPress={() => { const next = !voiceMuted; setVoiceMuted(next); if (next) void Speech.stop(); }}
+        >
+          <MaterialIcons name={voiceMuted ? 'volume-off' : 'volume-up'} size={22} color="#344054" />
+        </Pressable>
+        <Pressable
+          accessibilityLabel="Theo dõi vị trí"
+          style={styles.mapControl}
+          onPress={() => { overviewShown.current = true; if (current) camera.current?.jumpTo({ center: [current.lng, current.lat], zoom: 17 }); }}
+        >
+          <MaterialIcons name="my-location" size={22} color="#344054" />
+        </Pressable>
+        <Pressable
+          accessibilityLabel="Xem toàn bộ lộ trình"
+          style={styles.mapControl}
+          onPress={() => {
+            if (!route || route.coordinates.length < 2) return;
+            const lngs = route.coordinates.map(point => point.lng);
+            const lats = route.coordinates.map(point => point.lat);
+            camera.current?.fitBounds(
+              [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)],
+              { padding: { top: 120, bottom: 180, left: 40, right: 40 }, duration: 400 },
+            );
+          }}
+        >
+          <MaterialIcons name="alt-route" size={22} color="#344054" />
+        </Pressable>
+      </View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F2F4F7', gap: 10 },
-  emptyText: { color: '#667085' },
-  maneuver: { position: 'absolute', top: 4, left: 14, right: 14, minHeight: 78, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: '#0B5B2A', elevation: 5, shadowColor: '#000000', shadowOpacity: 0.22, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
-  maneuverRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F2F4F7', gap: 10, padding: 24 },
+  emptyText: { color: '#667085', textAlign: 'center' },
+  maneuver: { position: 'absolute', top: 4, left: 14, right: 14, minHeight: 78, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: '#0B5B2A', elevation: 5, shadowColor: '#000000', shadowOpacity: 0.22, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, flexDirection: 'row', alignItems: 'center', gap: 12 },
   maneuverArrow: { color: '#FFFFFF', fontSize: 26, fontWeight: '700' },
-  roadShield: { minWidth: 42, height: 27, paddingHorizontal: 6, borderRadius: 3, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  roadShieldText: { color: '#101828', fontSize: 14, fontWeight: '800' },
-  roadSeparator: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', marginLeft: -5 },
-  maneuverRoad: { flex: 1, color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  maneuverDistance: { marginTop: 7, color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  maneuverDivider: { height: 1, marginTop: 8, backgroundColor: 'rgba(255,255,255,0.35)' },
-  maneuverSecondary: { marginTop: 7, color: '#FFFFFF', fontSize: 13 },
+  maneuverCopy: { flex: 1, gap: 4 },
+  maneuverInstruction: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  maneuverDistance: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   mapControls: { position: 'absolute', right: 14, top: 126, gap: 12 },
   mapControl: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', elevation: 5, shadowColor: '#000000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } },
-  speedLimit: { position: 'absolute', left: 14, top: 126, width: 58, height: 58, borderRadius: 29, backgroundColor: '#FFFFFF', borderWidth: 5, borderColor: '#D92D20', alignItems: 'center', justifyContent: 'center', elevation: 5, shadowColor: '#000000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } },
-  speedLimitText: { color: '#101828', fontSize: 20, fontWeight: '800' },
 });
