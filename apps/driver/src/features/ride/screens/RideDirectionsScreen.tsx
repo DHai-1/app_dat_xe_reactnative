@@ -29,7 +29,7 @@ export default function RideDirectionsScreen() {
         </View>
       </View>
       <View style={styles.map}>
-        <DriverDirectionsMap destination={h.destination} targetLabel={targetLabel} />
+        <DriverDirectionsMap destination={h.destination} targetLabel={targetLabel} directions={h.directions} onRefresh={h.refresh} />
       </View>
     </SafeAreaView>
   );
