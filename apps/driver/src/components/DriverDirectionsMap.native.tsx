@@ -44,6 +44,10 @@ function arrowFor(instruction: string): string {
 // các mẫu phổ biến; tiếng Việt giữ nguyên.
 function localizeInstruction(value: string): string {
   return value
+    .replace(/^In\s+([\d.,]+)\s*m(?:eters?)?\b/i, 'Sau $1 mét')
+    .replace(/^In\s+([\d.,]+)\s*kilometers?\b/i, 'Sau $1 km')
+    .replace(/^In\s+([\d.,]+)\s*feet\b/i, 'Sau $1 feet')
+    .replace(/^Then\s+/i, 'Sau đó ')
     .replace(/^Turn right onto\s+/i, 'Rẽ phải vào ')
     .replace(/^Turn left onto\s+/i, 'Rẽ trái vào ')
     .replace(/^Turn right on\s+/i, 'Rẽ phải vào ')
@@ -57,12 +61,6 @@ function localizeInstruction(value: string): string {
     .replace(/\bon the right\b/gi, 'bên phải')
     .replace(/\bon the left\b/gi, 'bên trái')
     .replace(/\bDestination\b/gi, 'Điểm đến');
-}
-
-// Tách tên đường khỏi câu chỉ dẫn để hiển thị badge.
-function roadName(instruction: string): string {
-  const match = instruction.match(/(?:từ|vào|đến|trên|theo)\s+(.+)$/i);
-  return (match ? match[1] : instruction).trim();
 }
 
 export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón', directions, onRefresh }: Props) {
@@ -215,8 +213,6 @@ export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón'
   const stepEnd = steps.slice(0, stepIndex + 1).reduce((sum, value) => sum + value.distanceMeters, 0);
   const stepRemaining = Math.max(0, stepEnd - scaledProgress);
   const displayInstruction = localizeInstruction(step?.instruction ?? '') || `Đang đi tới ${targetLabel}`;
-  const road = roadName(displayInstruction) || `Đi tới ${targetLabel}`;
-  const nextRoad = steps[stepIndex + 1] ? roadName(localizeInstruction(steps[stepIndex + 1].instruction)) : '';
 
   if (!mapStyle) {
     return <View style={styles.empty}><Text style={styles.emptyText}>Thiếu EXPO_PUBLIC_GOONG_MAP_KEY để hiển thị bản đồ.</Text></View>;
@@ -261,20 +257,11 @@ export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón'
         </GeoJSONSource>
       </Map>
       <View style={styles.maneuver}>
-        <View style={styles.maneuverRow}>
-          <Text style={styles.maneuverArrow}>{arrowFor(displayInstruction)}</Text>
-          <View style={styles.roadBadge}>
-            <Text style={styles.roadBadgeText} numberOfLines={1}>{road}</Text>
-          </View>
+        <Text style={styles.maneuverArrow}>{arrowFor(displayInstruction)}</Text>
+        <View style={styles.maneuverCopy}>
+          <Text style={styles.maneuverInstruction} numberOfLines={2}>{displayInstruction}</Text>
+          <Text style={styles.maneuverDistance}>{step ? formatDistance(stepRemaining) : ''}</Text>
         </View>
-        <Text style={styles.maneuverInstruction} numberOfLines={2}>{displayInstruction}</Text>
-        <Text style={styles.maneuverDistance}>{step ? formatDistance(stepRemaining) : ''}</Text>
-        {nextRoad ? (
-          <>
-            <View style={styles.maneuverDivider} />
-            <Text style={styles.thenText} numberOfLines={1}>Sau đó {nextRoad}</Text>
-          </>
-        ) : null}
       </View>
       <View style={styles.mapControls}>
         <Pressable
@@ -311,15 +298,11 @@ export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón'
 const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F2F4F7', gap: 10, padding: 24 },
   emptyText: { color: '#667085', textAlign: 'center' },
-  maneuver: { position: 'absolute', top: 4, left: 14, right: 14, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, backgroundColor: '#14532D', elevation: 5, shadowColor: '#000000', shadowOpacity: 0.22, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, gap: 4 },
-  maneuverRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  maneuverArrow: { color: '#FFFFFF', fontSize: 22, fontWeight: '700' },
-  roadBadge: { flexShrink: 1, backgroundColor: '#FFFFFF', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  roadBadgeText: { color: '#111827', fontSize: 15, fontWeight: '700' },
-  maneuverInstruction: { color: 'rgba(255,255,255,0.95)', fontSize: 13, fontWeight: '600', marginTop: 2 },
-  maneuverDistance: { color: '#FFFFFF', fontSize: 13, fontWeight: '700', marginLeft: 32 },
-  maneuverDivider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.35)', marginTop: 4 },
-  thenText: { color: 'rgba(255,255,255,0.92)', fontSize: 12, marginTop: 2 },
+  maneuver: { position: 'absolute', top: 4, left: 14, right: 14, minHeight: 78, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: '#0B5B2A', elevation: 5, shadowColor: '#000000', shadowOpacity: 0.22, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  maneuverArrow: { color: '#FFFFFF', fontSize: 26, fontWeight: '700' },
+  maneuverCopy: { flex: 1, gap: 4 },
+  maneuverInstruction: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  maneuverDistance: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   mapControls: { position: 'absolute', right: 14, top: 126, gap: 12 },
   mapControl: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', elevation: 5, shadowColor: '#000000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } },
 });
