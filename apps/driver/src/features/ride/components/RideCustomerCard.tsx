@@ -3,7 +3,7 @@ import type { CustomerRideDetail } from "@datxe/shared";
 import { Button, Card, Typography as Text, useThemeColors } from "@datxe/ui";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useState } from "react";
-import { Linking, ScrollView, StyleSheet, View } from "react-native";
+import { Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Avatar, Dialog, Portal } from "react-native-paper";
 
 export function RideCustomerCard({ ride }: { ride: CustomerRideDetail }) {
@@ -53,6 +53,19 @@ export function RideCustomerCard({ ride }: { ride: CustomerRideDetail }) {
           <Text style={{ color: colors.onSurfaceVariant }}>Khách hàng</Text>
           <Text style={styles.name} numberOfLines={2}>{name}</Text>
         </View>
+        <View style={styles.contactActions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Gọi điện cho ${name}`}
+            hitSlop={8}
+            disabled={!canCall}
+            onPress={event => { event.stopPropagation(); void call(); }}
+            style={styles.contactAction}
+          >
+            <MaterialIcons name="call" size={22} color={canCall ? colors.primary : colors.onSurfaceVariant} />
+          </Pressable>
+          <DriverChatButton ride={ride} compact />
+        </View>
         <MaterialIcons name="chevron-right" size={24} color={colors.onSurfaceVariant} />
       </Card>
       <Portal>
@@ -88,8 +101,10 @@ export function RideCustomerCard({ ride }: { ride: CustomerRideDetail }) {
 }
 
 const styles = StyleSheet.create({
-  summary: { flexDirection: "row", alignItems: "center", gap: 12 },
+  summary: { flexDirection: "row", alignItems: "center", gap: 8 },
   identity: { flex: 1, gap: 4 },
+  contactActions: { flexDirection: "row", alignItems: "center", gap: 4 },
+  contactAction: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   name: { fontSize: 16, fontWeight: "600" },
   scrollArea: { paddingHorizontal: 0, borderTopWidth: 0, borderBottomWidth: 0 },
   details: { paddingHorizontal: 24, paddingVertical: 8, gap: 12 },
