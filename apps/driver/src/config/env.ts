@@ -9,7 +9,6 @@ export const env = {
   facebookAppId: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID?.trim(),
   facebookClientToken: process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN?.trim(),
   mapboxToken: process.env.EXPO_PUBLIC_MAPBOX_TOKEN?.trim(),
-  googleMapsKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY?.trim(),
   goongMapKey: process.env.EXPO_PUBLIC_GOONG_MAP_KEY?.trim(),
   goongStyleUrl: process.env.EXPO_PUBLIC_GOONG_MAP_KEY?.trim()
     ? `https://tiles.goong.io/assets/navigation_day.json?api_key=${encodeURIComponent(process.env.EXPO_PUBLIC_GOONG_MAP_KEY.trim())}`

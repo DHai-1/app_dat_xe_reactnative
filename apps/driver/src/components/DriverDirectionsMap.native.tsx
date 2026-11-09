@@ -7,7 +7,7 @@ import * as Speech from 'expo-speech';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-type Props = { destination: RideCoordinates; targetLabel?: string };
+type Props = { destination: RideCoordinates; targetLabel?: string; vehicle?: 'car' | 'bike' };
 
 type DirectionsStep = {
   instruction: string;
@@ -21,8 +21,43 @@ type DirectionsRoute = {
   steps: DirectionsStep[];
 };
 
+type GoongDirectionsResponse = {
+  status?: string;
+  error_message?: string;
+  error?: { message?: string };
+  routes?: Array<{
+    overview_polyline?: { points?: string };
+    legs?: Array<{
+      distance?: { value?: number };
+      steps?: Array<{
+        html_instructions?: string;
+        distance?: { value?: number };
+        start_location?: { lat: number; lng: number };
+        end_location?: { lat: number; lng: number };
+        maneuver?: string;
+      }>;
+    }>;
+  }>;
+};
+
 function trimHtml(value: string): string {
   return value.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
+}
+
+function localizeInstruction(value: string): string {
+  return value
+    .replace(/^Turn right onto\s+/i, 'Rẽ phải vào ')
+    .replace(/^Turn left onto\s+/i, 'Rẽ trái vào ')
+    .replace(/^Turn right on\s+/i, 'Rẽ phải vào ')
+    .replace(/^Turn left on\s+/i, 'Rẽ trái vào ')
+    .replace(/^Continue straight onto\s+/i, 'Đi thẳng vào ')
+    .replace(/^Continue straight on\s+/i, 'Đi thẳng vào ')
+    .replace(/^Continue straight\s*$/i, 'Đi thẳng')
+    .replace(/^Make a U-turn onto\s+/i, 'Quay đầu vào ')
+    .replace(/^Head\s+/i, 'Đi ')
+    .replace(/\bonto\b/gi, 'vào')
+    .replace(/\bon the right\b/gi, 'bên phải')
+    .replace(/\bon the left\b/gi, 'bên trái');
 }
 
 function decodePolyline(encoded: string): RideCoordinates[] {
@@ -53,31 +88,21 @@ function decodePolyline(encoded: string): RideCoordinates[] {
   return points;
 }
 
-async function googleDirections(origin: RideCoordinates, destination: RideCoordinates, key: string, signal: AbortSignal): Promise<DirectionsRoute> {
-  const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}&mode=driving&language=vi&key=${encodeURIComponent(key)}`;
+async function goongDirections(
+  origin: RideCoordinates,
+  destination: RideCoordinates,
+  vehicle: 'car' | 'bike',
+  key: string,
+  signal: AbortSignal,
+): Promise<DirectionsRoute> {
+  const url = `https://rsapi.goong.io/Direction?origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}&vehicle=${vehicle}&api_key=${encodeURIComponent(key)}`;
   const response = await fetch(url, { signal });
-  const data: {
-    status?: string;
-    error_message?: string;
-    routes?: Array<{
-      overview_polyline?: { points?: string };
-      legs?: Array<{
-        distance?: { value?: number };
-        steps?: Array<{
-          html_instructions?: string;
-          distance?: { value?: number };
-          start_location?: { lat: number; lng: number };
-          end_location?: { lat: number; lng: number };
-          maneuver?: string;
-        }>;
-      }>;
-    }>;
-  } = await response.json();
+  const data: GoongDirectionsResponse = await response.json();
   const leg = data.routes?.[0]?.legs?.[0];
-  if (data.status !== 'OK' || !leg) throw new Error(data.error_message || data.status || 'Không lấy được đường đi.');
+  if (!leg) throw new Error(data.error_message || data.error?.message || 'Không lấy được đường đi.');
   const coordinates = decodePolyline(data.routes?.[0]?.overview_polyline?.points ?? '');
   const steps: DirectionsStep[] = (leg.steps ?? []).map(step => ({
-    instruction: trimHtml(step.html_instructions ?? ''),
+    instruction: localizeInstruction(trimHtml(step.html_instructions ?? '')),
     distanceMeters: step.distance?.value ?? 0,
     start: { lat: step.start_location?.lat ?? 0, lng: step.start_location?.lng ?? 0 },
     end: { lat: step.end_location?.lat ?? 0, lng: step.end_location?.lng ?? 0 },
@@ -108,7 +133,7 @@ function arrowFor(instruction: string): string {
   return '↑';
 }
 
-export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón' }: Props) {
+export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón', vehicle = 'car' }: Props) {
   const camera = useRef<CameraRef>(null);
   const [current, setCurrent] = useState<RideCoordinates | null>(null);
   const [route, setRoute] = useState<DirectionsRoute | null>(null);
@@ -143,11 +168,11 @@ export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón'
 
   useEffect(() => {
     if (!current) return;
-    const key = env.googleMapsKey;
-    if (!key) { setError('Thiếu EXPO_PUBLIC_GOOGLE_MAPS_KEY để lấy đường đi.'); return; }
+    const key = env.goongMapKey;
+    if (!key) { setError('Thiếu EXPO_PUBLIC_GOONG_MAP_KEY để lấy đường đi.'); return; }
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      void googleDirections(current, destination, key, controller.signal)
+      void goongDirections(current, destination, vehicle, key, controller.signal)
         .then(next => {
           if (controller.signal.aborted) return;
           setRoute(next);
@@ -159,7 +184,7 @@ export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón'
         .catch(value => { if (!controller.signal.aborted) setError(value?.message ?? 'Không lấy được đường đi.'); });
     }, 400);
     return () => { controller.abort(); clearTimeout(timer); };
-  }, [current?.lat, current?.lng, destination.lat, destination.lng]);
+  }, [current?.lat, current?.lng, destination.lat, destination.lng, vehicle]);
 
   useEffect(() => {
     if (!route || !current || route.steps.length === 0) return;
