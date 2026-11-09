@@ -32,9 +32,11 @@ function formatDistance(meters: number): string {
 
 function arrowFor(instruction: string): string {
   const value = instruction.toLowerCase();
-  if (value.includes('trái') || value.includes('left')) return '←';
-  if (value.includes('phải') || value.includes('right')) return '→';
-  if (value.includes('quay đầu') || value.includes('u-turn')) return '↺';
+  // Chỉ bắt cụm hành động (rẽ phải/rẽ trái/quay đầu), tránh nhầm khi tên đường có "trái"/"phải".
+  const maneuver = value.match(/(?:rẽ|turn)\s+(?:phải|right)|(?:rẽ|turn)\s+(?:trái|left)|quay đầu|u-turn/)?.[0] ?? '';
+  if (maneuver.includes('quay') || maneuver.includes('u-turn')) return '↺';
+  if (maneuver.includes('trái') || maneuver.includes('left')) return '←';
+  if (maneuver.includes('phải') || maneuver.includes('right')) return '→';
   return '↑';
 }
 
@@ -70,6 +72,8 @@ export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón'
   const [voiceId, setVoiceId] = useState<string | undefined>(undefined);
   const [stepIndex, setStepIndex] = useState(0);
   const announced = useRef<Set<number>>(new Set());
+  // Route mới (re-route) phải đọc lại từ đầu.
+  useEffect(() => { announced.current.clear(); }, [directions]);
   const voiceMutedRef = useRef(false);
   const overviewShown = useRef(false);
   const mapStyle = env.goongStyleUrl;
@@ -247,6 +251,7 @@ export function DriverDirectionsMap({ destination, targetLabel = 'điểm đón'
             <Text style={styles.roadBadgeText} numberOfLines={1}>{road}</Text>
           </View>
         </View>
+        <Text style={styles.maneuverInstruction} numberOfLines={2}>{displayInstruction}</Text>
         <Text style={styles.maneuverDistance}>{step ? formatDistance(stepRemaining) : ''}</Text>
         {nextRoad ? (
           <>
@@ -295,6 +300,7 @@ const styles = StyleSheet.create({
   maneuverArrow: { color: '#FFFFFF', fontSize: 22, fontWeight: '700' },
   roadBadge: { flexShrink: 1, backgroundColor: '#FFFFFF', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   roadBadgeText: { color: '#111827', fontSize: 15, fontWeight: '700' },
+  maneuverInstruction: { color: 'rgba(255,255,255,0.95)', fontSize: 13, fontWeight: '600', marginTop: 2 },
   maneuverDistance: { color: '#FFFFFF', fontSize: 13, fontWeight: '700', marginLeft: 32 },
   maneuverDivider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.35)', marginTop: 4 },
   thenText: { color: 'rgba(255,255,255,0.92)', fontSize: 12, marginTop: 2 },
