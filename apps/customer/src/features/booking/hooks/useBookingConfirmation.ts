@@ -1,11 +1,14 @@
+import { useWalletOverview } from '@/lib/useWallet';
+import { walletApi } from '@/lib/walletApi';
+import { customerApi } from '@/lib/customerApi';
 import { localizedAlert } from '@datxe/ui';
-import { translate as i18nT , AuthApiError } from '@datxe/shared';
+import { walletBalance, translate as i18nT , AuthApiError } from '@datxe/shared';
 import { useRefreshOnFocus } from '@/lib/useRefreshOnFocus';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { createCustomerRide, getActiveCustomerRide, getCustomerVehicles, getCustomerVouchers, getRideEstimate } from '../api';
-import { activeRideDestination, estimateRequest } from '../bookingUtils';
+import { activeRideDestination, estimateRequest, type SchedulePickerSession } from '../bookingUtils';
 import { useBookingDraft } from '../store';
 
 function friendlyPriceError(error: unknown): string {
@@ -17,13 +20,18 @@ export function useBookingConfirmation() {
   const router = useRouter();
   const client = useQueryClient();
   const draft = useBookingDraft();
+  const profile = useQuery({ queryKey: ['customer', 'getCustomerProfile'], queryFn: customerApi.getCustomerProfile });
+  const wallet = useWalletOverview();
+  const [paymentChoice, setPaymentMethod] = useState<'CASH' | 'WALLET' | null>(null);
+  const paymentMethod = paymentChoice ?? (profile.data?.default_payment_method === 'WALLET' ? 'WALLET' : 'CASH');
+  const balance = walletBalance(wallet.data, 'CUSTOMER');
   const [note, setNote] = useState('');
   const [scheduledAt, setScheduledAt] = useState<string | null>(null);
   const [voucherVisible, setVoucherVisible] = useState(false);
   const [voucherError, setVoucherError] = useState('');
   const [applyingCode, setApplyingCode] = useState<string | null>(null);
   const [scheduleVisible, setScheduleVisible] = useState(false);
-  const [slots, setSlots] = useState<string[]>([]);
+  const [schedulePicker, setSchedulePicker] = useState<SchedulePickerSession | null>(null);
   const attempt = useRef<{ fingerprint: string; key: string } | null>(null);
   const submitting = useRef(false);
   const vehicles = useQuery({ queryKey: ['customer', 'getCustomerVehicles'], queryFn: getCustomerVehicles });
@@ -39,7 +47,9 @@ export function useBookingConfirmation() {
   const vouchers = useQuery({ queryKey: ['customer', 'getCustomerVouchers'], queryFn: getCustomerVouchers, enabled: voucherVisible || Boolean(draft.voucherCode) });
   const selectedVoucher = vouchers.data?.find(item => item.code === draft.voucherCode);
   const error = requestError || friendlyPriceError(estimate.error) || vehicles.error?.message || active.error?.message || '';
-  const ready = Boolean(input && vehicle && estimate.data && !estimate.isError && !estimate.isFetching && active.isSuccess && !active.isFetching && !active.data);
+  const walletReady = paymentMethod === 'CASH' || Boolean(wallet.isSuccess && !wallet.isError && !wallet.isFetching && balance !== undefined && estimate.data && balance >= estimate.data.payableFare);
+  const paymentError = paymentMethod !== 'WALLET' ? '' : wallet.isLoading || wallet.isFetching ? 'Đang kiểm tra số dư ví…' : wallet.isError || balance === undefined ? 'Chưa kiểm tra được số dư ví. Hãy thử lại hoặc chọn tiền mặt.' : estimate.data && balance < estimate.data.payableFare ? 'Số dư ví không đủ. Vui lòng nạp thêm hoặc chọn tiền mặt.' : '';
+  const ready = walletReady && Boolean(input && vehicle && estimate.data && !estimate.isError && !estimate.isFetching && active.isSuccess && !active.isFetching && !active.data);
   const applyVoucher = async (code: string) => {
     if (!input || applyingCode !== null) return;
     setApplyingCode(code); setVoucherError('');
@@ -62,7 +72,12 @@ export function useBookingConfirmation() {
         localizedAlert(i18nT("Giá chuyến đã cập nhật"), i18nT("Vui lòng kiểm tra tổng thanh toán mới và nhấn đặt chuyến lần nữa."));
         return null;
       }
-      const payload = { ...input, routeQuoteId: latest.route?.id, type: scheduledAt ? 'SCHEDULED' as const : 'INSTANT' as const, paymentMethod: 'CASH' as const, note: note.trim() || null, pickupNote: draft.pickupNote.trim() || null };
+      if (paymentMethod === 'WALLET') {
+        const freshWallet = await walletApi.overview();
+        const freshBalance = walletBalance(freshWallet, 'CUSTOMER');
+        if (freshBalance === undefined || freshBalance < latest.payableFare) throw new Error('Số dư ví không đủ. Vui lòng nạp thêm tiền trước khi đặt xe.');
+      }
+      const payload = { ...input, routeQuoteId: latest.route?.id, type: scheduledAt ? 'SCHEDULED' as const : 'INSTANT' as const, paymentMethod, note: note.trim() || null, pickupNote: draft.pickupNote.trim() || null };
       const fingerprint = JSON.stringify(payload);
       if (attempt.current?.fingerprint !== fingerprint) attempt.current = { fingerprint, key: `customer-${Date.now()}-${Math.random().toString(36).slice(2)}` };
       return createCustomerRide(payload, attempt.current.key);
@@ -74,6 +89,13 @@ export function useBookingConfirmation() {
       await client.invalidateQueries({ queryKey: ['customer'] });
     },
     onError: async error => {
+      if (error instanceof AuthApiError && error.code === 'SCHEDULED_RIDE_EXISTS') {
+        localizedAlert('Bạn đã có lịch hẹn đang chờ', 'Mở Lịch sử để xem hoặc hủy lịch hiện tại trước khi đặt lịch khác.', [
+          { text: 'Đóng', style: 'cancel' },
+          { text: 'Mở Lịch sử', onPress: () => router.replace('/(tabs)/history') },
+        ]);
+        return;
+      }
       if (error instanceof AuthApiError && ['ACTIVE_RIDE_EXISTS', 'CONFLICT'].includes(error.code)) {
         const currentRide = await getActiveCustomerRide().catch(() => null);
         if (currentRide) {
@@ -89,9 +111,18 @@ export function useBookingConfirmation() {
   });
   const book = () => { if (ready && !submitting.current) { submitting.current = true; create.mutate(); } };
   const openSchedule = () => {
-    const first = Math.ceil((Date.now() + 15 * 60000) / (30 * 60000)) * 30 * 60000;
-    setSlots(Array.from({ length: 48 }, (_, index) => new Date(first + index * 30 * 60000).toISOString()));
+    setSchedulePicker({ referenceTime: Date.now(), expired: false });
     setScheduleVisible(true);
   };
-  return { router, draft, vehicle, route: estimate.data?.route?.coordinates, routeLoading: estimate.isFetching, estimate: estimate.data, estimating: estimate.isFetching, error, ready, note, setNote, scheduledAt, setScheduledAt, scheduleVisible, setScheduleVisible, slots, openSchedule, voucherVisible, setVoucherVisible, voucherError, applyingCode, applyVoucher, vouchers: vouchers.data ?? [], vouchersLoading: vouchers.isLoading, vouchersError: vouchers.error?.message, retryVouchers: vouchers.refetch, selectedVoucher, retryPrice: estimate.refetch, activeRide: active.data, book, submitting: create.isPending };
+  const closeSchedule = () => setScheduleVisible(false);
+  const selectSchedule = (slot: string | null) => {
+    const now = Date.now();
+    if (slot !== null && Date.parse(slot) <= now) {
+      setSchedulePicker({ referenceTime: now, expired: true });
+      return;
+    }
+    setScheduledAt(slot);
+    closeSchedule();
+  };
+  return { router, paymentMethod, setPaymentMethod, walletBalance: balance, paymentError, retryWallet: wallet.refetch, draft, vehicle, route: estimate.data?.route?.coordinates, routeLoading: estimate.isFetching, estimate: estimate.data, estimating: estimate.isFetching, error, ready, note, setNote, scheduledAt, scheduleVisible, schedulePicker, openSchedule, closeSchedule, selectSchedule, voucherVisible, setVoucherVisible, voucherError, applyingCode, applyVoucher, vouchers: vouchers.data ?? [], vouchersLoading: vouchers.isLoading, vouchersError: vouchers.error?.message, retryVouchers: vouchers.refetch, selectedVoucher, retryPrice: estimate.refetch, activeRide: active.data, book, submitting: create.isPending };
 }
