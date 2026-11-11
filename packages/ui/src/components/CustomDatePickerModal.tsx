@@ -142,7 +142,7 @@ export function CustomDatePickerModal({
 
   const years = useMemo(() => {
     const from = min ? min.getFullYear() : initial.getFullYear() - 100;
-    const to = max ? max.getFullYear() : new Date().getFullYear();
+    const to = max ? max.getFullYear() : new Date().getFullYear() + 20;
     return Array.from(
       { length: Math.max(to - from + 1, 1) },
       (_, i) => from + i,
