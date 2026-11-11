@@ -1,6 +1,6 @@
 import { translate as t, type CustomerImageFile, type TicketMessage, type TicketStatus, type TicketSummary } from '@datxe/shared';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { FlatList, Image, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Appbar, Avatar, IconButton } from 'react-native-paper';
 import { Button } from '../components/Button';
@@ -39,7 +39,6 @@ export function TicketChat({ ticket, messages, currentRole, loading, sending, er
   const [picking, setPicking] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const list = useRef<FlatList<TicketMessage>>(null);
-  const newestFirst = useMemo(() => [...messages].reverse(), [messages]);
   const canSend = Boolean(draft.trim() || image) && !sending && !picking;
   const attach = async () => {
     if (!onPickImage || sending || picking) return;
@@ -61,7 +60,7 @@ export function TicketChat({ ticket, messages, currentRole, loading, sending, er
     setImage(null);
     try {
       await onSend({ body, image: picked });
-      list.current?.scrollToOffset({ offset: 0, animated: true });
+      list.current?.scrollToEnd({ animated: true });
     } catch {
       // Giữ lại nội dung/ảnh để người dùng gửi lại; lỗi hiển thị ở trên.
       setDraft(body);
@@ -102,8 +101,7 @@ export function TicketChat({ ticket, messages, currentRole, loading, sending, er
         ) : (
           <FlatList
             ref={list}
-            inverted
-            data={newestFirst}
+            data={messages}
             keyExtractor={item => String(item.id)}
             style={s.fill}
             contentContainerStyle={s.list}
