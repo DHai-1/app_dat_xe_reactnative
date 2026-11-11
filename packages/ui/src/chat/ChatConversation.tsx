@@ -63,13 +63,12 @@ export function ChatConversation({
   const [nearLatest, setNearLatest] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
   const [failedAvatar, setFailedAvatar] = useState<string | null>(null);
-  const newestFirst = useMemo(() => [...rows].reverse(), [rows]);
   const locale = getLocale();
+  const latest = () => list.current?.scrollToEnd({ animated: true });
   const dateFormat = useMemo(() => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }), [locale]);
   const timeFormat = useMemo(() => new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }), [locale]);
   const sendDisabled = busy || !enabled || !draft.trim();
 
-  const latest = () => list.current?.scrollToOffset({ offset: 0, animated: true });
   return (
     <ScreenWrapper>
       <Appbar.Header statusBarHeight={0} style={s.header}>
@@ -101,16 +100,17 @@ export function ChatConversation({
         ) : (
           <FlatList
             ref={list}
-            inverted
-            data={newestFirst}
+            data={rows}
             keyExtractor={(row) => row.key}
             style={s.fill}
             contentContainerStyle={s.list}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
-            onScroll={(event) => setNearLatest(event.nativeEvent.contentOffset.y < 100)}
+            onScroll={(event) => {
+              const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+              setNearLatest(contentSize.height - contentOffset.y - layoutMeasurement.height < 120);
+            }}
             scrollEventThrottle={100}
-            maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: preview ? undefined : 80 }}
             ListFooterComponent={hasMore ? (
               <Button variant="ghost" label="Tải tin nhắn cũ" loading={loadingOlder} onPress={onLoadOlder} />
             ) : undefined}
@@ -118,7 +118,7 @@ export function ChatConversation({
               const date = new Date(item.createdAt);
               const validDate = Number.isFinite(date.getTime());
               const day = validDate ? date.toDateString() : "";
-              const older = newestFirst[index + 1];
+              const older = rows[index - 1];
               const startsDay = validDate && (!older || new Date(older.createdAt).toDateString() !== day);
               const followsSender = Boolean(older && !startsDay && older.mine === item.mine);
               return (
